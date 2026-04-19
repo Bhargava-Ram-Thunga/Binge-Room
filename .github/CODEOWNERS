@@ -1,0 +1,15 @@
+# Global — all PRs need at least one of these
+* @Bhargava-Ram-Thunga
+
+# Shared package — both must review (any shared type change breaks all packages)
+packages/shared/ @Bhargava-Ram-Thunga
+
+# Backend
+packages/backend/ @Bhargava-Ram-Thunga
+
+# Extension + Web
+packages/extension/ @Bhargava-Ram-Thunga
+packages/web/ @Bhargava-Ram-Thunga
+
+# Docs
+docs/ @Bhargava-Ram-Thunga
