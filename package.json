@@ -1,5 +1,5 @@
 {
-  "name": "binge-room",
+  "name": "bingeroom-monorepo",
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
