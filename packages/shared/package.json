@@ -12,6 +12,10 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "nanoid": "^5.1.9"
   }
 }
