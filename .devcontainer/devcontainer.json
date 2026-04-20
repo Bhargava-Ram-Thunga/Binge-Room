@@ -1,0 +1,51 @@
+{
+  "name": "Binge-Room Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "onCreateCommand": "npm install -g pnpm@9",
+  "updateContentCommand": "pnpm install",
+  "postCreateCommand": "test -f .env || cp .env.example .env && echo '\n\n⚠️  Fill in your .env before running. See docs/ENV.md\n\nNOTE: Chrome extension testing requires local Chrome — Codespaces has no browser.\n\n'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.vscode-typescript-next",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "usernamehw.errorlens",
+        "vitest.explorer",
+        "christian-kohler.path-intellisense",
+        "formulahendry.auto-rename-tag",
+        "PKief.material-icon-theme",
+        "GitHub.vscode-pull-request-github"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "vitest.enable": true,
+        "files.exclude": {
+          "**/node_modules": true,
+          "**/.turbo": true,
+          "**/dist": true
+        }
+      }
+    }
+  },
+  "forwardPorts": [3000, 4000, 4001, 61000],
+  "portsAttributes": {
+    "3000": { "label": "Web app (Next.js)", "onAutoForward": "notify" },
+    "4000": { "label": "Backend REST (Fastify)", "onAutoForward": "notify" },
+    "4001": { "label": "WebSocket (uWebSockets.js)", "onAutoForward": "silent" },
+    "61000": { "label": "Ladle component stories", "onAutoForward": "notify" }
+  },
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "PNPM_HOME": "/home/node/.local/share/pnpm"
+  }
+}

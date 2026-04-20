@@ -59,7 +59,9 @@ docs/superpowers/
 findings.md
 progress.md
 task_plan.md
-.claude/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/settings.json
 
 # ─── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
@@ -112,3 +114,4 @@ docker-compose.override.yml
 *.tar.gz
 *.tgz
 !docs/**/*.zip
+.claude/settings.json
