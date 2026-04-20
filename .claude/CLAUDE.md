@@ -1,463 +1,385 @@
 # BingeRoom — Master Session Prompt
-# Auto-read by Claude Code at the start of every session.
-# Replace only the SESSION TASK section each time.
+# Works for both Claude Pro (via subscription) and Gemma 4 (via Ollama fallback)
+# Auto-read by Claude Code at start of every session
+# Replace only the SESSION TASK section each time
 
-/plan
-planning-with-files
+---
+
+## MODEL DETECTION — READ THIS FIRST
+
+If you are Claude (Sonnet/Opus via Pro subscription):
+- You hold full context across long sessions
+- Follow instructions as written
+- Pause before git push as specified
+
+If you are Gemma 4 (via Ollama claude --model gemma4:31b-cloud):
+- Re-read this entire file every 30 minutes during long sessions
+- Run /plan:status after every single task, not just every 30 minutes
+- Before writing any code, output your ultrathink analysis (see below)
+- You are more likely to drift — the plan:status check is your anchor
+- All other rules are identical
 
 ---
 
 ## BOOT SEQUENCE — MANDATORY EVERY SESSION
 
-Execute in this exact order before touching anything:
+Execute in this exact order. No permission needed for any of these.
+Run all commands immediately without asking:
 
-1. Read this entire file top to bottom
-2. Run: find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/.turbo/*'
-3. Run: git branch --show-current
-4. Run: git log --oneline -5
-5. Run: pnpm turbo test 2>&1 | tail -20
-6. Output this block before any work begins:
+```bash
+find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' \
+  -not -path '*/dist/*' -not -path '*/.turbo/*' | head -60
+git branch --show-current
+git log --oneline -5
+git status --short
+pnpm turbo test 2>&1 | tail -20
+```
+
+Output this before any work:
 
 ```
 ═══ SESSION BOOT ════════════════════════════════
+Model      : [Claude Sonnet / Gemma 4 — which are you]
 Branch     : [current branch]
 Last commit: [last commit message]
 Tests      : [N passed / N failed]
 Dirty files: [git status --short]
+Milestone  : [which milestone this session works on]
+Board state: [current status of this milestone on project board]
 ═════════════════════════════════════════════════
 ```
 
-If any test is already failing at boot — fix it before writing a single line of new code. A broken baseline means you cannot tell if your changes caused new failures.
+If any test is failing at boot — fix it before anything else.
+
+---
+
+## ULTRATHINK — FIRES BEFORE EVERY CODE BLOCK
+
+Before writing any implementation, output this analysis silently
+then proceed. Do not ask permission to do this — just do it:
+
+```
+ULTRATHINK ══════════════════════════════════════
+Security   : How would shannon break what I am about to write?
+             Is there an injection path? An exposed secret?
+             A missing auth check? An unvalidated input?
+Types      : Does @bingeroom/shared already have this type?
+             If yes — import it, never redefine it.
+             If no — add it to shared first, then import.
+Performance: Will this bloat the extension content script?
+             Is this on the critical sync path?
+             Should this DB write be async (fire and forget)?
+Test first : What is the minimum test that would fail if this
+             implementation is wrong? Write that test first.
+Plan check : Does this match the session task? Am I drifting?
+══════════════════════════════════════════════════
+```
+
+This takes 10 seconds and prevents 10 hours of debugging.
+
+---
+
+## AUTONOMOUS EXECUTION PROTOCOL
+
+Run these immediately without asking for permission:
+- All file reads: cat, find, ls, grep, head, tail
+- All test runs: pnpm test, pnpm turbo test
+- All build checks: pnpm build, pnpm turbo build
+- All lint runs: pnpm lint
+- All internal skill triggers: /brainstorm, /simplify, shannon, web-quality-audit
+- All git operations EXCEPT push: git add, git commit, git status, git log
+- Installing packages: pnpm add
+- Running scripts: pnpm turbo [anything]
+
+PAUSE and wait for explicit confirmation before:
+- git push — always confirm branch and content before pushing
+- Any command requiring sudo
+- Any command that modifies external services (Daily.co, Supabase, Upstash)
+- Opening a PR (gh pr create)
+- Any database migration (prisma migrate)
+
+This is the only permission boundary. Everything else: just do it.
+
+---
+
+## SKILL CHAIN — FIRES AUTOMATICALLY
+
+### At session start
+1. planning-with-files — load full project context immediately
+2. /plan:status — confirm current milestone and tasks
+
+### Before writing any code
+3. ultrathink analysis (see above) — no permission needed
+4. /brainstorm — list all scenarios: happy path, edge cases, errors, race conditions
+
+### During implementation
+5. test-driven-development — tests written before implementation, always
+6. /simplify — fires automatically when any file exceeds 80 lines
+7. /debug — fires on any unexpected failure, 2 attempts max then ⚠ BLOCKED
+
+### After each task completes
+8. /plan:status — confirm progress, confirm still on correct branch
+
+### After completing a full feature
+9. shannon — autonomous security scan, no permission needed, runs immediately
+10. web-quality-audit — runs on packages/web and packages/extension
+11. best-practices — runs on the feature directory
+12. accessibility — runs on any UI component
+13. performance — runs on extension build, target under 200kb overlay bundle
+
+### When creating multiple similar files
+14. /batch — generates all files in one pass with consistent structure
+
+### When creating docs or architecture diagrams
+15. graphify — generates mermaid diagrams embedded in markdown
+
+### Before declaring any milestone done
+16. shannon — MANDATORY final security scan
+17. web-quality-audit — MANDATORY final quality check
+18. ultrathink — one final pass: "what did I miss?"
 
 ---
 
 ## PROJECT IDENTITY
 
 BingeRoom is a Chrome extension for synchronized YouTube watch parties.
-Everyone in a room sees the same video playing, pausing, and seeking in perfect sync.
-Phase 1: YouTube only. Auth: email/password and Google OAuth. No guests.
+Phase 1: YouTube only. Auth: email/password + Google OAuth. No guest mode.
 
-Repository : https://github.com/Bhargava-Ram-Thunga/Binge-Room
-Owner      : Bhargava-Ram-Thunga (Bhargav) — extension, web, overlay UI
-Collaborator: Dinesh-Reddy-Siramgari (Dinesh) — backend, WS server, sync engine, DB
+Repository   : https://github.com/Bhargava-Ram-Thunga/Binge-Room
+Team         : Bhargava-Ram-Thunga + Dinesh-Reddy-Siramgari
+Both work on all parts — no strict ownership by person
 
 ## Package map
 
-| Package | Name | Purpose | Port |
-|---------|------|---------|------|
-| packages/shared | @bingeroom/shared | Types, events, utils — zero runtime deps | — |
-| packages/backend | @bingeroom/backend | Fastify REST + uWebSockets.js WS | 4000 / 4001 |
-| packages/web | @bingeroom/web | Next.js 14 — landing, room, join pages | 3000 |
-| packages/extension | @bingeroom/extension | Chrome MV3 — popup, content script, overlay | — |
+| Package | Name | Port |
+|---------|------|------|
+| packages/shared | @bingeroom/shared | — |
+| packages/backend | @bingeroom/backend | 4000 REST / 4001 WS |
+| packages/web | @bingeroom/web | 3000 |
+| packages/extension | @bingeroom/extension | — |
+
+## Environment
+
+Primary dev   : GitHub Codespaces (both team members)
+Extension test: Local Mac only (no Chrome in Codespaces)
+Model primary : Claude Pro via subscription (claude login)
+Model fallback: Gemma 4 via Ollama (claude --model gemma4:31b-cloud)
+Sync          : git push/pull through GitHub — never manual file copies
 
 ## Branch model
 
-| Branch | Purpose | Rule |
-|--------|---------|------|
+| Branch | Purpose | Ruleset |
+|--------|---------|---------|
 | prod | Production | 2 approvals, signed commits, linear history, all CI |
 | dev | Integration | 1 approval, no force push, Test + Type check CI |
 | feat/* | Feature work | No force push only |
 | fix/* | Bug fixes | No force push only |
-| hotfix/* | Prod emergency fixes | No force push, no deletion |
+| hotfix/* | Prod emergency | No force push, no deletion |
 
-Never push directly to prod or dev. Always work on feat/* or fix/*.
+---
+
+## MILESTONE TRACKER — UPDATE THIS TABLE EVERY SESSION
+
+| # | Milestone | Status | Branch |
+|---|-----------|--------|--------|
+| M0 | GitHub setup — branches, rulesets, board, CI | Shipped | — |
+| M1 | Monorepo foundation | Building | feat/monorepo-setup |
+| M2 | Shared types package | Backlog | feat/shared-types |
+| M3 | Database schema + Prisma | Backlog | feat/database-schema |
+| M4 | Backend env + server boot | Backlog | feat/backend-scaffold |
+| M5 | Auth — Supabase OAuth + email/password | Backlog | feat/supabase-auth |
+| M6 | Room create + invite link + 6-digit code | Backlog | feat/room-create |
+| M7 | WebSocket server | Backlog | feat/ws-server |
+| M8 | Sync engine | Backlog | feat/sync-engine |
+| M9 | All WS event handlers | Backlog | feat/ws-handlers |
+| M10 | Extension scaffold + background worker | Backlog | feat/extension-scaffold |
+| M11 | YouTube content script | Backlog | feat/yt-content-script |
+| M12 | Overlay mount + store | Backlog | feat/overlay-ui |
+| M13 | Overlay UI components | Backlog | feat/overlay-components |
+| M14 | Video + audio call (Daily.co) | Backlog | feat/video-audio-call |
+| M15 | Web app pages | Backlog | feat/web-pages |
+| M16 | End-to-end integration testing | Backlog | feat/integration-tests |
+| M17 | Security audit | Backlog | feat/security-audit |
+| M18 | Performance pass | Backlog | feat/performance |
+| M19 | Alpha deploy + 10 real users | Backlog | feat/alpha-deploy |
+
+When milestone status changes:
+1. Update the table above
+2. Move the GitHub issue on the project board via gh CLI:
+
+```bash
+gh project list --owner Bhargava-Ram-Thunga
+gh project item-edit \
+  --project-id PROJECT_ID \
+  --id ITEM_ID \
+  --field-id STATUS_FIELD_ID \
+  --single-select-option-id OPTION_ID
+```
+
+Board columns: Backlog → Building → Review → Shipped
+Move to Review when PR is opened.
+Move to Shipped when PR is merged to dev.
 
 ---
 
 ## 10 ABSOLUTE RULES — NEVER VIOLATE
 
 1. HEADERS BEFORE AWAIT
-   In uWebSockets.js upgrade handler: read ALL req.getHeader() calls
-   before any await. The request object is destroyed after the first await.
-   Silent crash. Zero exceptions.
+   uWebSockets.js upgrade handler: ALL req.getHeader() calls before
+   any await. Request dies after first await. Silent crash.
 
 2. SINGLE ENV FILE
-   One .env at monorepo root. Never create .env inside any package.
-   Backend reads via src/env.ts (zod validated).
-   Extension reads via Vite define() at build time (VITE_ prefix).
-   Web reads via Next.js (NEXT_PUBLIC_ prefix).
-   Never access process.env directly — always through src/env.ts.
+   One .env at root. Never create .env inside packages.
+   Backend → src/env.ts. Extension → Vite define(). Web → NEXT_PUBLIC_.
+   Never access process.env directly.
 
 3. REDIS TLS
    REDIS_URL must start with rediss:// not redis://.
-   Upstash silently rejects non-TLS. Will appear connected then fail.
 
 4. HOST AUTHORITY
-   Server silently drops PLAY/PAUSE/SEEK from any userId that is not
-   the current room hostId. Dropped — not errored. No response sent.
+   Server silently drops PLAY/PAUSE/SEEK from non-host userId.
+   Dropped, not errored. No response sent.
 
 5. NO PLAYBACK CONTROLS IN OVERLAY
-   The overlay contains: chat, presence, reactions, call.
-   Never add play, pause, seek, or progress bar. Not even disabled.
-   The native YouTube player IS the sync mechanism.
+   Chat, presence, reactions, call only.
+   Never add play/pause/seek/progress. Not even disabled.
 
 6. SHARED TYPES ONLY
-   Never redefine a type that exists in @bingeroom/shared.
-   Add it to shared first, then import it everywhere.
-   Any PR touching packages/shared requires both Bhargav and Dinesh to review.
+   Never redefine types from @bingeroom/shared locally.
+   Add to shared first, import everywhere.
 
 7. ZOD EVERYTHING
-   Every WS message payload, REST request body, and env var is validated
-   with zod before any logic runs. Never trust raw input.
+   Every WS payload, REST body, env var validated with zod.
 
 8. NO ANY TYPE
-   TypeScript any is never used. Use unknown and narrow it.
-   tsc --strict must pass with zero errors.
+   Use unknown and narrow it. tsc --strict must pass.
 
 9. NO CONSOLE.LOG IN PRODUCTION CODE
-   Use pino logger in backend. Nothing in extension/web non-test code.
-   console.log is allowed only inside *.test.ts files.
+   Pino in backend. Nothing in extension/web non-test files.
 
 10. COMMIT PER TASK
-    Every completed task is its own commit pushed immediately.
-    Never batch commits at end of session.
-    Never commit with failing tests.
+    Every task = one commit pushed immediately.
+    Never batch. Never commit red tests.
 
 ---
 
-## SKILL ACTIVATION — FIRES AUTOMATICALLY
+## TESTING STANDARDS
 
-Every skill below fires based on what you are doing.
-You do not wait to be told — you fire the skill when the trigger condition is met.
+### Red-Green-Refactor — strictly in order
 
-### planning-with-files
-TRIGGER: First thing in every session after boot sequence.
-DO: Load full project context into working memory. Read SCHEMA.md,
-    WS_EVENTS.md if they exist. Map what exists vs what needs building.
-NEVER skip this — open source models lose context mid-session without it.
+RED:    Write test. Run it. It must fail for the RIGHT reason.
+        "Cannot find module" = setup error, fix setup.
+        "Expected 105 received 100" = correct, implementation missing.
+        Never proceed to GREEN if the failure reason is wrong.
 
-### /brainstorm
-TRIGGER: Before designing any non-trivial piece of logic.
-USE FOR: Sync algorithm edge cases, auth flow scenarios, WS handler
-         failure modes, any feature with more than 3 moving parts.
-OUTPUT: Exhaustive list of scenarios including happy path, edge cases,
-        error cases, race conditions, and failure modes.
+GREEN:  Write minimum implementation. Tests pass.
 
-### /write-plan
-TRIGGER: After /brainstorm produces scenarios.
-DO: Convert brainstorm output into an ordered task list with
-    explicit definition-of-done per task.
-OUTPUT: Numbered plan confirmed before any implementation starts.
+REFACTOR: Run /simplify. Re-run tests. Confirm still green.
 
-### /execute-plan
-TRIGGER: After /write-plan is confirmed.
-DO: Execute the plan task by task. After each task: test → lint → commit → push.
-Never jump ahead. Never skip a task. Never combine two tasks into one commit.
+COMMIT: Only after all three phases complete for this task.
 
-### test-driven-development
-TRIGGER: Before implementing ANY of these:
-  - Any function in packages/shared/src/utils/
-  - Any WS handler in packages/backend/src/ws/handlers/
-  - Any REST route in packages/backend/src/rest/routes/
-  - Any middleware in packages/backend/src/rest/middleware/
-  - packages/backend/src/ws/syncEngine.ts
-  - packages/backend/src/env.ts
-  - packages/extension/src/content/ytPlayer.ts
-  - Any auth or token logic
+### Minimum test counts
 
-STRICT RED-GREEN-REFACTOR PROCESS:
-  RED   : Write test. Run it. Confirm it fails for the right reason.
-          "Cannot find module" = wrong. "Expected X received undefined" = wrong.
-          "Expected 105 received 100" = correct — implementation is missing.
-  GREEN : Write minimum implementation to make test pass.
-  REFACTOR: Run /simplify. Re-run tests. Confirm still green.
-  COMMIT: Only after all three phases complete for this task.
+| File | Min |
+|------|-----|
+| utils/time.ts | 13 |
+| utils/room.ts | 6 |
+| env.ts | 12 |
+| auth middleware | 12 |
+| syncEngine.ts | 15 |
+| each ws handler | 8 |
+| ws/handlers/seek.ts | 10 |
+| invite token | 10 |
+| ytPlayer.ts | 10 |
+| each REST route | 8 |
 
-### /simplify
-TRIGGER AUTOMATICALLY when:
-  - Any file exceeds 80 lines after implementation
-  - Any function exceeds 20 lines
-  - Any callback nesting exceeds 2 levels
-  - A file has been modified more than 3 times in one session
-DO: Apply suggestions. Re-run tests. Confirm green.
-
-### /debug
-TRIGGER: Any unexpected test failure, build error, or runtime crash.
-DO: Pass the FULL error with complete stack trace — never summarize.
-LIMIT: If not resolved after 2 attempts — output ⚠ BLOCKED and stop.
-Never retry the same fix twice.
-
-### /batch
-TRIGGER: Creating 3 or more structurally similar files.
-USE FOR: ws/handlers/*.ts, rest/routes/*.ts, __tests__/*.test.ts,
-         overlay components in one pass.
-OUTPUT: All files generated with identical structure and naming convention.
-
-### frontend-design
-TRIGGER: Before building ANY UI component — one trigger per component.
-DO: Apply exact design tokens from packages/extension/src/lib/tokens.ts
-    and packages/web/lib/tokens.ts.
-RULE: Every hex value comes from tokens.ts. No hardcoded colors in components.
-RULE: Every border-radius, transition, shadow comes from tokens.ts.
-RULE: Ladle story written before component implementation (test-driven for UI).
-
-### graphify
-TRIGGER: When creating architecture diagrams, flow diagrams, or
-         data relationship visualizations for documentation.
-USE FOR: docs/ directory diagrams, README architecture diagram,
-         WS event flow visualization, auth flow diagram.
-OUTPUT: Embed as mermaid in markdown files so GitHub renders them.
-
-### web-app-security
-TRIGGER: After implementing any of:
-  - Auth endpoints or middleware
-  - Token generation or validation
-  - Invite link creation or resolution
-  - Any user input that reaches DB or WS server
-  - CORS configuration
-
-CHECKS: SQL injection paths, JWT tampering, missing expiry,
-        secret exposure in client bundles, unvalidated input,
-        CORS misconfiguration, missing rate limits.
-FIX: All CRITICAL and HIGH findings before committing.
-
-### api-security-testing
-TRIGGER: After implementing any REST route.
-GENERATE AND RUN these attack cases for every route:
-  - No Authorization header → must return 401
-  - Expired token → must return 401
-  - Token with one character flipped → must return 401
-  - Wrong Content-Type → must return 415
-  - Payload 10x over expected size → must return 413
-  - Request that hits rate limit → must return 429
-  - SQL injection in string fields → must return 400, never 500
-  - XSS payload in string fields → must return 400, never 500
-All attack cases committed as real test files — not just manual checks.
-
-### shannon
-TRIGGER: End of any session that touched auth, tokens, invite flow,
-         or any security-sensitive code path.
-NOT triggered: scaffold sessions, config-only sessions, type-only changes.
-OUTPUT: Shannon report. Fix all findings before session ends.
-
-### web-quality-audit
-TRIGGER: After completing web app pages or overlay components.
-CHECK: Performance, accessibility, best practices on the UI layer.
-
-### performance
-TRIGGER: After overlay bundle is built.
-CHECK: Bundle size must stay under 200kb for overlay.
-       Content script must not increase YouTube LCP.
-       Sync event round-trip target under 200ms on same network.
-
-### accessibility
-TRIGGER: After every UI component is visually complete.
-CHECK: aria-labels on interactive elements, WCAG AA contrast on #080810
-       background, keyboard navigation, focus rings visible (cyan glow counts),
-       screen reader announces connected/disconnected state changes.
-
-### best-practices
-TRIGGER: After completing a full feature (not individual functions).
-A feature = implementation + tests green + security checked + pushed.
-RUN on the feature's entire directory.
-
-### /simplify (second pass)
-TRIGGER: After best-practices pass on any file.
-DO: Final clean-up pass. Re-run tests after.
-
-### core-web-vitals
-TRIGGER: After web app pages are built.
-CHECK: LCP under 2.5s on join page and landing page.
-
-### /plan:status
-TRIGGER:
-  - After every numbered task in the session task list
-  - Every 30 minutes during a long session
-  - Before any commit to verify correct branch
-OUTPUT: Tasks completed, tasks remaining, current branch, any drift from plan.
-
----
-
-## TESTING STANDARDS — NON-NEGOTIABLE
-
-### What rigorous means
-
-COSMETIC (worthless — proves nothing):
-```typescript
-it('computeHostPosition works', () => {
-  const result = computeHostPosition(100, Date.now(), true)
-  expect(result).toBeDefined()  // passes even if function returns undefined
-})
-```
-
-RIGOROUS (valuable — proves the algorithm):
-```typescript
-it('adds elapsed seconds to position when playing — 5s elapsed gives ~105', () => {
-  const lastPosition = 100
-  const lastTimestamp = Date.now() - 5000
-  const result = computeHostPosition(lastPosition, lastTimestamp, true)
-  expect(result).toBeGreaterThan(104.9)
-  expect(result).toBeLessThan(105.1)
-  // Fails if function ignores elapsed time. Exact, meaningful failure.
-})
-```
-
-### Test file structure — follow exactly
+### Test naming — full sentences
 
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { CONSTANT } from '@bingeroom/shared'
-
-describe('ModuleName', () => {
-  describe('FunctionName', () => {
-    describe('happy path', () => {
-      it('returns X when given valid Y', () => { ... })
-    })
-    describe('edge cases', () => {
-      it('returns X when Y is at exact boundary value', () => { ... })
-      it('returns X when Y is empty', () => { ... })
-    })
-    describe('error cases', () => {
-      it('throws SPECIFIC_ERROR when Y is null', () => { ... })
-      it('returns 401 with code INVALID_TOKEN when JWT is tampered', () => { ... })
-    })
-  })
-})
-```
-
-### Minimum test counts per file
-
-| File | Min tests | Why |
-|------|-----------|-----|
-| utils/time.ts | 13 | Core sync math — wrong here = desync for all users |
-| utils/room.ts | 6 | Token uniqueness is a security property |
-| env.ts | 12 | Every missing key must fail with exact field name |
-| auth middleware | 12 | Every bypass is a breach |
-| syncEngine.ts | 15 | Most complex logic, most failure modes |
-| ws/handlers/play.ts | 8 | |
-| ws/handlers/pause.ts | 8 | |
-| ws/handlers/seek.ts | 10 | Feedback loop guard needs thorough testing |
-| ws/handlers/chat.ts | 8 | |
-| ws/handlers/reaction.ts | 6 | |
-| ws/handlers/videoChange.ts | 8 | |
-| ws/handlers/roomClose.ts | 8 | |
-| invite token flow | 10 | Security-critical path |
-| ytPlayer.ts | 10 | Feedback loop guard + SPA navigation |
-| REST routes | 8 each | Includes all attack cases from api-security-testing |
-
-### Test naming convention — full sentences
-
-```typescript
-it('returns the host position plus elapsed seconds when isPlaying is true')
-it('returns exact lastPosition when isPlaying is false regardless of elapsed time')
-it('silently drops SEEK event when sender is not the room host')
-it('redirects all guests to /ended when ROOM_CLOSE is broadcast')
-it('returns 401 with code INVALID_TOKEN when Authorization header is missing')
-it('does not re-emit seeked event when isApplyingRemote flag is true')
-```
-
-### Test file location
-
-```
-packages/shared/src/utils/__tests__/time.test.ts
-packages/shared/src/utils/__tests__/room.test.ts
-packages/backend/src/__tests__/env.test.ts
-packages/backend/src/__tests__/auth.test.ts
-packages/backend/src/ws/__tests__/syncEngine.test.ts
-packages/backend/src/ws/handlers/__tests__/play.test.ts
-packages/extension/src/content/__tests__/ytPlayer.test.ts
+it('adds elapsed seconds to position when isPlaying is true')
+it('returns exact lastPosition when paused regardless of elapsed time')
+it('silently drops SEEK from non-host without sending error response')
+it('returns 401 with code INVALID_TOKEN when Authorization header missing')
 ```
 
 ---
 
-## GIT WORKFLOW — EXACT STEPS AFTER EVERY TASK
-
-After EACH completed task — not at session end. After EACH task.
+## GIT WORKFLOW — AFTER EVERY TASK
 
 ```bash
-# 1. Verify branch
+# 1. Verify branch — stop if wrong
 git branch --show-current
-# If wrong branch: STOP. Switch. Do not commit on wrong branch.
 
-# 2. Run tests for affected package only
+# 2. Tests
 pnpm --filter @bingeroom/[package] test
-# If any failure: fix it. No exceptions. No partial commits.
+# Zero failures required — no exceptions
 
-# 3. Run lint
+# 3. Lint
 pnpm --filter @bingeroom/[package] lint
-# Fix all errors. Warnings acceptable.
 
-# 4. Stage ONLY files for this task
-git add [explicit file list]
-# Never git add .
-# Run git status to confirm only intended files are staged
+# 4. Stage explicitly — never git add .
+git add [specific files only]
+git status  # confirm nothing extra staged
 
 # 5. Commit
 git commit -m "type(scope): description"
 
-# 6. Push
-git push origin [current-branch]
+# 6. PAUSE — output what is about to be pushed, wait for confirmation
+# "About to push [commit] to [branch]. Confirm? (yes/no)"
 
-# 7. Output report
+# 7. After confirmation: push
+git push origin [branch]
+
+# 8. Update project board if milestone status changed
+
+# 9. Output report
 ```
 
-After every push output exactly:
-
+Report after every push:
 ```
 ═══ TASK COMPLETE ═══════════════════════════════
-✓ COMMITTED : [full commit message]
-✓ BRANCH    : [branch name]
+✓ COMMITTED : [commit message]
+✓ BRANCH    : [branch]
 ✓ TESTS     : [N passed, 0 failed]
-✓ STAGED    : [files committed]
-✓ SKILLS    : [which skills fired this task]
-→ NEXT      : [next task name]
+✓ STAGED    : [files]
+✓ SKILLS    : [skills fired this task]
+✓ BOARD     : [milestone moved / no change]
+→ NEXT      : [next task]
 ═════════════════════════════════════════════════
 ```
 
-### Commit message format
-
-```
-type(scope): description
-```
+### Commit types and scopes
 
 Types: feat, fix, test, refactor, chore, security, perf, docs
-Scopes: shared, backend, ws, rest, auth, db, redis, sync, ext, content, overlay, web, env
-
-Examples:
-```
-feat(shared): add WsEvent discriminated union with 11 event types
-test(shared): add 13 rigorous time utility tests — RED phase
-feat(ws): add upgrade handler with pre-await header reads
-fix(ws): guard ytPlayer feedback loop with isApplyingRemote flag
-test(auth): add 12 attack cases for JWT middleware
-security(auth): validate invite token signature before room join
-feat(overlay): add ChatPanel component with auto-scroll and typing indicator
-```
+Scopes: shared, backend, ws, rest, auth, db, redis, sync, ext, content, overlay, web, env, monorepo
 
 ---
 
-## DESIGN TOKENS — USE THESE, NEVER HARDCODE
+## DESIGN TOKENS
 
-All tokens live in packages/extension/src/lib/tokens.ts
-and packages/web/lib/tokens.ts (identical content).
+packages/extension/src/lib/tokens.ts and packages/web/lib/tokens.ts
 
 ```typescript
 export const colors = {
-  black: '#080810',        // ALL backgrounds — never use pure #000
-  navy: '#0E0E1C',         // cards, inputs, secondary surfaces
-  violet: '#7C6FFF',       // brand, CTAs, active states
-  cyan: '#00E5FF',         // hover, connected indicator, focus rings
-  textPrimary: '#EEEEF5',  // all important text — never pure white
-  textSecondary: '#7878A0', // timestamps, labels, metadata
-  pink: '#FF3C6E',         // errors, destructive, YouTube brand icon
-  green: '#00E5AA',        // online dots, connected, positive states
-  amber: '#FFB800',        // reconnecting, sync issues, warnings
+  black: '#080810',
+  navy: '#0E0E1C',
+  violet: '#7C6FFF',
+  cyan: '#00E5FF',
+  textPrimary: '#EEEEF5',
+  textSecondary: '#7878A0',
+  pink: '#FF3C6E',
+  green: '#00E5AA',
+  amber: '#FFB800',
   glass: 'rgba(255, 255, 255, 0.04)',
   glassBorder: 'rgba(255, 255, 255, 0.08)',
 } as const
 
 export const radii = {
-  sm: '6px',
-  md: '12px',
-  lg: '16px',
-  xl: '20px',
-  full: '9999px',
+  sm: '6px', md: '12px', lg: '16px', xl: '20px', full: '9999px',
 } as const
 
 export const transitions = {
-  fast: '150ms ease',
-  normal: '250ms ease',
-  slow: '400ms ease',
+  fast: '150ms ease', normal: '250ms ease', slow: '400ms ease',
 } as const
 
 export const shadows = {
@@ -469,30 +391,35 @@ export const shadows = {
 
 ---
 
-## WEBSOCKET EVENTS REFERENCE
+## WEBSOCKET EVENTS
 
-All 11 event types — defined in packages/shared/src/events.ts.
-Full spec in docs/WS_EVENTS.md.
+Full spec: docs/WS_EVENTS.md
 
-| Event | Direction | Who sends | Host only? |
-|-------|-----------|-----------|------------|
-| ROOM_STATE | server→client | server | — |
-| PLAY | client→server→clients | host only | YES |
-| PAUSE | client→server→clients | host only | YES |
-| SEEK | client→server→clients | host only | YES |
-| CHAT_MSG | client→server→clients | any member | NO |
-| MEMBER_JOIN | server→clients | server | — |
-| MEMBER_LEAVE | server→clients | server | — |
-| HOST_SWITCH | client→server→clients | current host | YES |
-| VIDEO_CHANGE | client→server→clients | host only | YES |
-| REACTION | client→server→clients | any member | NO |
-| ROOM_CLOSE | client→server→clients | host only | YES |
+| Event | Sender | Host only |
+|-------|--------|-----------|
+| ROOM_STATE | server | — |
+| PLAY | host | YES |
+| PAUSE | host | YES |
+| SEEK | host | YES |
+| CHAT_MSG | any member | NO |
+| MEMBER_JOIN | server | — |
+| MEMBER_LEAVE | server | — |
+| HOST_SWITCH | current host | YES |
+| VIDEO_CHANGE | host | YES |
+| REACTION | any member | NO |
+| ROOM_CLOSE | host | YES |
+
+---
+
+## DATABASE STATE
+
+docs/SCHEMA.md — design document, exists ✓
+prisma/schema.prisma — created in M3, does not exist yet
+Supabase database — empty, tables created in M3
 
 ---
 
 ## BLOCKED PROTOCOL
-
-When genuinely unsure — do not guess. Output this and stop:
 
 ```
 ⚠ BLOCKED ════════════════════════════════════════
@@ -500,79 +427,57 @@ ISSUE    : [one sentence — exactly what is unclear]
 OPTIONS  :
   A) [approach] — [tradeoff]
   B) [approach] — [tradeoff]
-  C) [approach] — [tradeoff]
-RECOMMEND: [A/B/C] because [one sentence]
-WAITING  : your confirmation before writing any code
+RECOMMEND: [A/B] because [reason]
+WAITING  : explicit confirmation before proceeding
 ══════════════════════════════════════════════════
 ```
 
-Do not proceed past a BLOCKED output until explicit confirmation.
-
 ---
 
-## END OF SESSION PROTOCOL
-
-Before declaring session complete, verify every item:
+## END OF SESSION CHECKLIST
 
 ```
-═══ SESSION END CHECKLIST ═══════════════════════
-□ Every task committed individually (not batched)
-□ pnpm turbo test — 0 failures across all packages
+═══ SESSION END ═════════════════════════════════
+□ Every task committed individually
+□ pnpm turbo test — 0 failures
 □ pnpm turbo build — 0 errors
-□ No .env created inside any package directory
-□ grep -r "process\.env" packages/*/src — returns nothing
-□ No `any` type (tsc --strict confirms)
-□ No types redefined locally that exist in @bingeroom/shared
+□ No .env inside any package
+□ grep -r "process\.env" packages/*/src — nothing outside env.ts
+□ No any type (tsc --strict passes)
+□ No types redefined from @bingeroom/shared
 □ No console.log in non-test files
 □ Branch pushed to origin
-□ /plan:status run and output shown
-□ shannon run if auth/tokens touched this session
-□ best-practices run on completed features
-□ web-app-security run if any endpoint added
+□ Project board updated
+□ Milestone tracker table updated above
+□ shannon run if auth/tokens touched
+□ web-quality-audit run if UI touched
+□ /plan:status final output shown
 ═════════════════════════════════════════════════
 ```
 
-Output each with ✓ or ✗.
-If any ✗ — fix it. Session is not complete until all ✓.
+Output each with ✓ or ✗. Fix all ✗ before declaring done.
 
 Then output:
 
 ```
-═══ DINESH HANDOFF NOTE ═════════════════════════
-Completed today  : [list of completed tasks]
-Shared/ changes  : [any changes to @bingeroom/shared — he MUST know]
-New env keys     : [any new keys added to .env.example]
-New DB migrations: [any new prisma migrations]
-His first task   : [exact task to start tomorrow]
-Blockers for him : [anything that will block his work]
+═══ HANDOFF NOTE ════════════════════════════════
+Completed    : [list of tasks done]
+Board moved  : [milestone from X to Y]
+shared/ changes: [other person MUST know these]
+New env keys : [added to .env.example]
+New migrations: [prisma migrations run]
+Next task    : [exact next thing]
+Blockers     : [anything blocking next session]
 ═════════════════════════════════════════════════
 ```
 
 ---
 
-## CURRENT PROJECT STATE
-
-Repo        : https://github.com/Bhargava-Ram-Thunga/Binge-Room
-Active branch: feat/monorepo-setup
-Completed   : GitHub setup (branches, rulesets, labels, milestones, 19 issues, board)
-On board    : M1-M4 → Building, M5-M19 → Backlog
-Next        : M1 — Monorepo foundation
-
-Board columns: Backlog → Building → Review → Shipped
-
-Services ready:
-  Supabase — project created (fill SUPABASE_* in .env)
-  Upstash Redis — created (fill REDIS_URL in .env)
-  Daily.co — needs account creation (fill DAILY_* in .env)
-  OpenRouter — Claude Code model configured in settings.json
-
----
-
-## SESSION TASK — REPLACE THIS SECTION EVERY SESSION
+## SESSION TASK — REPLACE THIS EVERY SESSION
 
 Branch   : feat/[branch-name]
-Task     : M[number] — [milestone name]
-Packages : [which packages are touched]
-Done when: [exact definition of done]
+Task     : M[number] — [name]
+Packages : [which packages]
+Done when: [exact definition]
 
 /plan:status
