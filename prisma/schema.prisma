@@ -1,13 +1,171 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  emailHash      String    @unique
+  passwordHash   String?
+  googleId       String?   @unique
+  displayName    String?
+  username       String    @unique
+  status         String    @default("active")
+  metadata       Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastSeenAt     DateTime? @default(now())
+
+  oauthConnections    OAuthConnection[]
+  devices             UserDevice[]
+  emailTokens         EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+  sessions            UserSession[]
+  memberships         RoomMember[]
+  hostedRooms         Room[]             @relation("RoomHost")
+
+  @@map("users")
+}
+
+model OAuthConnection {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String
+  providerUserId String   @unique
+  isActive       Boolean  @default(true)
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("oauth_connections")
+}
+
+model UserDevice {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprintHash String
+  trustLevel     String   @default("new")
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("user_devices")
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  status     String   @default("active")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  status     String   @default("active")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model UserSession {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  metadata   Json     @default("{}")
+
+  @@map("user_sessions")
+}
+
+model Room {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  hostUserId     String
+  host           User     @relation("RoomHost", fields: [hostUserId], references: [id])
+  status         String   @default("waiting")
+  platform       String   @default("youtube")
+  currentVideoId String?
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  members        RoomMember[]
+  inviteTokens   InviteToken[]
+  videos         RoomVideo[]
+  snapshots      RoomActivitySnapshot[]
+
+  @@map("rooms")
+}
+
+model RoomMember {
+  id         String   @id @default(cuid())
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("member")
+  status     String   @default("active")
+  joinedAt   DateTime @default(now())
+  metadata   Json     @default("{}")
+
+  @@map("room_members")
+}
+
+model InviteToken {
+  id         String   @id @default(cuid())
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  code       String
+  status     String   @default("active")
+  expiresAt  DateTime
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@map("invite_tokens")
+}
+
+model RoomVideo {
+  id               String   @id @default(cuid())
+  roomId           String
+  room             Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  platformVideoId  String
+  title            String
+  isCurrent        Boolean  @default(false)
+  addedAt          DateTime @default(now())
+  metadata         Json     @default("{}")
+
+  @@map("room_videos")
+}
+
+model RoomActivitySnapshot {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  snapshotAt  DateTime @default(now())
+  memberCount Int
+  avgDriftMs  Int
+  metadata    Json     @default("{}")
+
+  @@map("room_activity_snapshots")
 }
