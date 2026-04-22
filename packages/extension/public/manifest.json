@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "BingeRoom",
+  "version": "0.1.0",
+  "description": "Synchronized YouTube watch parties.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["src/content/index.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/overlay/index.html"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ]
+}

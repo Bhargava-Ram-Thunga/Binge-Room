@@ -59,7 +59,9 @@ docs/superpowers/
 findings.md
 progress.md
 task_plan.md
-.claude/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/settings.json
 
 # ─── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
@@ -112,3 +114,34 @@ docker-compose.override.yml
 *.tar.gz
 *.tgz
 !docs/**/*.zip
+.claude/settings.json
+
+# Ignore downloaded agent binaries and plugin-specific runtimes
+.agents/
+agents/
+.adal/
+.kiro/
+.plugins/
+plugin-cache/
+
+# Superpowers & Antigravity artifacts
+.superpowers/
+.antigravity/
+writing-plans/
+executing-plans/
+brainstorming/
+*.plan.md
+*.spec.md
+
+# Maintain rule visibility while ignoring session bloat
+.claude/session-*
+.claude/history/
+.claude/tmp/
+!.claude/rules/
+!.claude/CLAUDE.md
+!.claude/settings.json
+
+# ─── Ollama & Local LLM Caches ───────────────────────────────────────────────
+.ollama/
+ollama.log
+*.gguf

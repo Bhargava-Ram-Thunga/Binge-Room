@@ -1,0 +1,48 @@
+{
+  "name": "Binge-Room Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install -y zstd pciutils lshw && npm install -g pnpm@9",
+  "updateContentCommand": "pnpm install",
+  "postCreateCommand": "bash .devcontainer/setup-ai.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.vscode-typescript-next",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "usernamehw.errorlens",
+        "vitest.explorer",
+        "christian-kohler.path-intellisense",
+        "formulahendry.auto-rename-tag",
+        "PKief.material-icon-theme",
+        "GitHub.vscode-pull-request-github"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "vitest.enable": true,
+        "files.exclude": {
+          "**/node_modules": true,
+          "**/.turbo": true,
+          "**/dist": true
+        }
+      }
+    }
+  },
+  "forwardPorts": [3000, 4000, 4001, 61000, 11434],
+  "portsAttributes": {
+    "11434": { "label": "Ollama API", "onAutoForward": "silent" }
+  },
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "PNPM_HOME": "/home/node/.local/share/pnpm"
+  }
+}

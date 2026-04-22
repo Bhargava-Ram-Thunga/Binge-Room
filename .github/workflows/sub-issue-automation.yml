@@ -1,0 +1,17 @@
+name: Sub-Issue Automation
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  handle-sub-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process sub-issues
+        run: |
+          echo "Analyzing issue for sub-issue keywords..."
+          # This is a placeholder for a more complex script that would
+          # scan the issue body for specific patterns (e.g., 'Sub-task: X')
+          # and automatically create linked issues.
+          echo "Sub-issue automation is currently in a simplified state."

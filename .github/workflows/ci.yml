@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev, prod]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package first
+        run: pnpm --filter @bingeroom/shared build
+
+      - name: Run tests
+        run: pnpm turbo run test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          DIRECT_URL: postgresql://test:test@localhost:5432/test
+          REDIS_URL: rediss://test:test@localhost:6379
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_ANON_KEY: test_anon_key_placeholder_value_here
+          SUPABASE_SERVICE_ROLE_KEY: test_service_role_placeholder_here
+          SUPABASE_JWT_SECRET: test_jwt_secret_minimum_32_characters_long_xx
+          JWT_SECRET: test_jwt_secret_minimum_32_characters_long_here
+          INVITE_TOKEN_SECRET: test_invite_secret_minimum_32_chars_long_here
+          DAILY_API_KEY: test_daily_key_placeholder
+          DAILY_DOMAIN: https://test.daily.co
+          APP_URL: http://localhost:3000
+          API_URL: http://localhost:4000
+          WS_URL: ws://localhost:4001
+          PORT_REST: "4000"
+          PORT_WS: "4001"
+          PORT_WEB: "3000"
+
+      - name: Run lint
+        run: pnpm turbo run lint
+
+  type-check:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package first
+        run: pnpm --filter @bingeroom/shared build
+
+      - name: Type check all packages
+        run: pnpm turbo run type-check
+
+  build:
+    name: Build
+    needs: [test, type-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm turbo run build
