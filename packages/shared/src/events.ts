@@ -1,14 +1,13 @@
-import type { Member } from './types.js'
+import type { Member, Message } from './types.js'
 
 export interface RoomStateEvent {
   type: 'ROOM_STATE'
   roomId: string
-  videoId: string | null
-  position: number
-  isPlaying: boolean
-  speed: number
   members: Member[]
-  hostUserId: string
+  messages: Message[]
+  videoUrl: string
+  hostPosition: number
+  hostId: string
 }
 
 export interface PlayEvent {
@@ -16,7 +15,7 @@ export interface PlayEvent {
   roomId: string
   userId: string
   position: number
-  timestamp: number
+  serverTimestamp: number
 }
 
 export interface PauseEvent {
@@ -24,7 +23,7 @@ export interface PauseEvent {
   roomId: string
   userId: string
   position: number
-  timestamp: number
+  serverTimestamp: number
 }
 
 export interface SeekEvent {
@@ -32,14 +31,15 @@ export interface SeekEvent {
   roomId: string
   userId: string
   position: number
-  timestamp: number
+  serverTimestamp: number
+  seekFrom: number
 }
 
 export interface ChatMsgEvent {
   type: 'CHAT_MSG'
   roomId: string
   userId: string
-  messageId: string
+  displayName: string
   text: string
   timestamp: number
 }
@@ -59,15 +59,16 @@ export interface MemberLeaveEvent {
 export interface HostSwitchEvent {
   type: 'HOST_SWITCH'
   roomId: string
-  previousHostId: string
   newHostId: string
+  previousHostId: string
 }
 
 export interface VideoChangeEvent {
   type: 'VIDEO_CHANGE'
   roomId: string
-  userId: string
+  videoUrl: string
   videoId: string
+  position: number
 }
 
 export interface ReactionEvent {
@@ -75,13 +76,11 @@ export interface ReactionEvent {
   roomId: string
   userId: string
   emoji: string
-  timestamp: number
 }
 
 export interface RoomCloseEvent {
   type: 'ROOM_CLOSE'
   roomId: string
-  userId: string
 }
 
 export type WsEvent =
