@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      prisma:
+        specifier: ^7.7.0
+        version: 7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
       turbo:
         specifier: ^2.0.0
         version: 2.9.6
@@ -22,7 +25,7 @@ importers:
         version: 10.3.0
       '@prisma/client':
         specifier: ^7.7.0
-        version: 7.7.0(prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3))(typescript@6.0.3)
+        version: 7.7.0(prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3))(typescript@6.0.3)
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -56,7 +59,7 @@ importers:
         version: 4.1.4(vitest@4.1.4)
       prisma:
         specifier: ^7.7.0
-        version: 7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
+        version: 7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -3642,16 +3645,16 @@ snapshots:
 
   '@prisma/client-runtime-utils@7.7.0': {}
 
-  '@prisma/client@7.7.0(prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3))(typescript@6.0.3)':
+  '@prisma/client@7.7.0(prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3))(typescript@6.0.3)':
     dependencies:
       '@prisma/client-runtime-utils': 7.7.0
     optionalDependencies:
-      prisma: 7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
+      prisma: 7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
       typescript: 6.0.3
 
-  '@prisma/config@7.7.0(magicast@0.5.2)':
+  '@prisma/config@7.7.0':
     dependencies:
-      c12: 3.1.0(magicast@0.5.2)
+      c12: 3.1.0
       deepmerge-ts: 7.1.5
       effect: 3.20.0
       empathic: 2.0.0
@@ -4365,7 +4368,7 @@ snapshots:
     dependencies:
       streamsearch: 1.1.0
 
-  c12@3.1.0(magicast@0.5.2):
+  c12@3.1.0:
     dependencies:
       chokidar: 4.0.3
       confbox: 0.2.4
@@ -4379,8 +4382,6 @@ snapshots:
       perfect-debounce: 1.0.0
       pkg-types: 2.3.0
       rc9: 2.1.2
-    optionalDependencies:
-      magicast: 0.5.2
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -4746,7 +4747,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.58.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.58.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -4768,7 +4769,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.58.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.58.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
       hasown: 2.0.3
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -5819,9 +5820,9 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.2)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3):
+  prisma@7.7.0(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(typescript@6.0.3):
     dependencies:
-      '@prisma/config': 7.7.0(magicast@0.5.2)
+      '@prisma/config': 7.7.0
       '@prisma/dev': 0.24.3(typescript@6.0.3)
       '@prisma/engines': 7.7.0
       '@prisma/studio-core': 0.27.3(@types/react-dom@18.3.7(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

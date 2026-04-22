@@ -154,3 +154,4 @@ ollama.log
 *.gguf
 
 coderabbit_feedback.json
+/generated/prisma

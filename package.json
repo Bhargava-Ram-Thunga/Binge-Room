@@ -9,6 +9,7 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
+    "prisma": "^7.7.0",
     "turbo": "^2.0.0"
   },
   "engines": {
