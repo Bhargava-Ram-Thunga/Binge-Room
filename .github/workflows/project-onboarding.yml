@@ -1,0 +1,32 @@
+name: Project Onboarding
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  onboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project and set status
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          PROJECT_ID: PVT_kwHOBd-eFs4BU-R3
+          FIELD_ID: PVTSSF_lAHOBd-eFs4BU-R3zhPJxp4
+          BACKLOG_OPTION_ID: 8d7a5de4
+        run: |
+          # Add the issue to the project
+          # gh project item-add returns the item ID in some versions or just a success message.
+          # We use a combination of item-add and then find the item to edit it.
+          gh project item-add "$PROJECT_ID" --owner "Bhargava-Ram-Thunga" --url "${{ github.event.issue.html_url }}"
+
+          # Find the item ID for this issue
+          ITEM_ID=$(gh project item-list "$PROJECT_ID" --owner "Bhargava-Ram-Thunga" --format json | jq -r '.items[] | select(.content.id == "${{ github.event.issue.node_id }}") | .id')
+
+          if [ -n "$ITEM_ID" ]; then
+            echo "Setting status to Backlog for item $ITEM_ID"
+            gh project item-edit --id "$ITEM_ID" --field-id "$FIELD_ID" --single-select-option-id "$BACKLOG_OPTION_ID" --project-id "$PROJECT_ID"
+          else
+            echo "Could not find project item ID for the newly added issue."
+            exit 1
+          fi
