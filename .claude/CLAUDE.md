@@ -18,6 +18,9 @@ If you are Claude (Sonnet/Opus via Pro subscription):
 - You hold full context across long sessions.
 - You naturally execute the ULTRATHINK protocol (see below) before coding.
 - Follow instructions as written and pause before git push.
+- **Council Approval**: For all strategic architectural decisions or major feature changes, you MUST invoke the `llm-council-skill` to gain a multi-agent consensus before proceeding.
+
+If you are Gemma 4 (via Ollama claude --model gemma4:31b-cloud):
 
 If you are Gemma 4 (via Ollama claude --model gemma4:31b-cloud):
 - Re-read this entire file every 30 minutes during long sessions.

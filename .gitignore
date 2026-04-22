@@ -82,6 +82,13 @@ ehthumbs.db
 *.swo
 *~
 .vim/
+.history/
+.idea/
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.dotsettings
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 logs/
@@ -145,3 +152,5 @@ brainstorming/
 .ollama/
 ollama.log
 *.gguf
+
+coderabbit_feedback.json
