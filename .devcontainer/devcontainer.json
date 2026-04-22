@@ -1,9 +1,9 @@
 {
   "name": "Binge-Room Dev",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-  "onCreateCommand": "npm install -g pnpm@9",
+  "onCreateCommand": "sudo apt-get update && sudo apt-get install -y zstd pciutils lshw && npm install -g pnpm@9",
   "updateContentCommand": "pnpm install",
-  "postCreateCommand": "test -f .env || cp .env.example .env && echo '\n\n⚠️  Fill in your .env before running. See docs/ENV.md\n\nNOTE: Chrome extension testing requires local Chrome — Codespaces has no browser.\n\n'",
+  "postCreateCommand": "bash .devcontainer/setup-ai.sh",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -37,12 +37,9 @@
       }
     }
   },
-  "forwardPorts": [3000, 4000, 4001, 61000],
+  "forwardPorts": [3000, 4000, 4001, 61000, 11434],
   "portsAttributes": {
-    "3000": { "label": "Web app (Next.js)", "onAutoForward": "notify" },
-    "4000": { "label": "Backend REST (Fastify)", "onAutoForward": "notify" },
-    "4001": { "label": "WebSocket (uWebSockets.js)", "onAutoForward": "silent" },
-    "61000": { "label": "Ladle component stories", "onAutoForward": "notify" }
+    "11434": { "label": "Ollama API", "onAutoForward": "silent" }
   },
   "remoteEnv": {
     "NODE_ENV": "development",
