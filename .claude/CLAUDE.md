@@ -38,7 +38,9 @@ find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*
 git branch --show-current
 git log --oneline -5
 git status --short
-pnpm turbo test 2>&1 | tail -20
+# Run tests only if files changed or explicitly requested (SKIP_BOOT_TESTS=false)
+[ -z "$SKIP_BOOT_TESTS" ] && git diff --quiet HEAD || pnpm turbo test 2>&1 | tail -20
 
 # 2. Fetch Project Board IDs (Required for milestone updates)
 gh project list --owner Bhargava-Ram-Thunga
+```
