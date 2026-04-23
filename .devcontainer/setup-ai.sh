@@ -28,3 +28,26 @@ for pkg in $PKGS; do
         echo "✅ $pkg already installed"
     fi
 done
+
+echo "🔌 Installing plugins..."
+# Extract plugin IDs
+PLUGINS=$(jq -r '.plugins[].id' "$CONFIG_FILE")
+for plugin in $PLUGINS; do
+    echo "Ensuring plugin $plugin..."
+    claude -c "/plugin marketplace add $plugin" || true
+    claude -c "/plugin install $plugin --global" || true
+done
+
+echo "🎓 Installing skills..."
+SKILLS=$(jq -r '.skills[]' "$CONFIG_FILE")
+for skill in $SKILLS; do
+    if [[ "$skill" == *":"* ]]; then
+        PROVIDER="${skill%%:*}"
+        SKILL_NAME="${skill#*:}"
+        echo "Installing $SKILL_NAME from $PROVIDER..."
+        npx skills add "$PROVIDER" --skill "$SKILL_NAME"
+    else
+        echo "Installing skill collection $skill..."
+        npx skills add "$skill"
+    fi
+done
