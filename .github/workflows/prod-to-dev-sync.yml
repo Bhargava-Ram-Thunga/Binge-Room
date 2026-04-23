@@ -1,0 +1,39 @@
+name: Prod to Dev Sync
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  sync-prod-to-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if Hotfix
+        id: hotfix-check
+        run: |
+          # Check if any commit in the push contains 'hotfix/' in the message
+          COMMITS=$(git log origin/dev..origin/prod --oneline)
+          if echo "$COMMITS" | grep -q "hotfix/"; then
+            echo "is_hotfix=true" >> $GITHUB_OUTPUT
+          elif ! git merge-base --is-ancestor origin/dev origin/prod; then
+            echo "is_hotfix=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_hotfix=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Back-merge PR
+        if: steps.hotfix-check.outputs.is_hotfix == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base dev \
+            --head prod \
+            --title "chore(monorepo): back-merge hotfix from prod to dev" \
+            --body "This is an automated PR to sync hotfixes from the prod branch back to dev."
