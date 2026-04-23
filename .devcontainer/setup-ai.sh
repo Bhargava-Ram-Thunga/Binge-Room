@@ -1,37 +1,30 @@
 #!/bin/bash
+set -e
 
-# 1. Install missing dependencies (zstd is mandatory for Ollama extraction)
-sudo apt-get update && sudo apt-get install -y zstd pciutils lshw
+CONFIG_FILE=".devcontainer/skills.json"
 
-# 2. Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
+# Bootstrap: Ensure jq and curl are present to read the config
+echo "🚀 Bootstrapping setup tools..."
+sudo apt-get update && sudo apt-get install -y jq curl
 
-# 3. Start Ollama Server (Background)
-# We use 'nohup' to ensure it stays alive even if the shell flickers
-nohup ollama serve > /tmp/ollama.log 2>&1 &
-sleep 5
+echo "📦 Installing system dependencies..."
+DEPS=$(jq -r '.system_dependencies[]' "$CONFIG_FILE")
+for dep in $DEPS; do
+    if ! dpkg -l | grep -q " $dep "; then
+        echo "Installing $dep..."
+        sudo apt-get install -y "$dep"
+    else
+        echo "✅ $dep already installed"
+    fi
+done
 
-# 4. Install Claude Code & Skills
-npm install -g @anthropic-ai/claude-code
-
-# 5. Install Superpowers & Skills
-npx antigravity-awesome-skills --claude
-npx skills add OthmanAdi/planning-with-files
-npx skills add anthropics/claude-code --skill frontend-design
-npx skills add anthropics/claude-code --skill simplify
-npx skills add anthropics/claude-code --skill batch
-npx skills add addyosmani/web-quality-skills
-npx skills add unicodeveloper/shannon
-
-echo "✅ AI Environment Loaded."
-echo "To start coding, run: ollama launch claude --model gemma4:31b-cloud"
-
-# 6. Install Superpowers Plugin automatically via Claude CLI
-echo "Installing Superpowers v5..."
-# Create the config directory if it doesn't exist
-mkdir -p ~/.claude/plugins
-# Force Claude to run the plugin install commands and exit
-claude -c "/plugin marketplace add obra/superpowers-marketplace"
-claude -c "/plugin install superpowers@superpowers-marketplace --global"
-
-echo "✅ Superpowers installed and ready."
+echo "📦 Installing global npm packages..."
+PKGS=$(jq -r '.global_npm_packages[]' "$CONFIG_FILE")
+for pkg in $PKGS; do
+    if ! npm list -g "$pkg" > /dev/null 2>&1; then
+        echo "Installing $pkg..."
+        npm install -g "$pkg"
+    else
+        echo "✅ $pkg already installed"
+    fi
+done
