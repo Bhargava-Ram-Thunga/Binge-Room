@@ -1,6 +1,6 @@
 {
   "system_dependencies": ["zstd", "pciutils", "lshw", "jq", "curl"],
-  "global_npm_packages": ["@anthropic-ai/claude-code"],
+  "global_npm_packages": ["@anthropic-ai/claude-code", "graphql"],
   "plugins": [
     { "id": "obra/superpowers-marketplace", "global": true },
     { "id": "sherifkozman/the-llm-council", "global": true }
