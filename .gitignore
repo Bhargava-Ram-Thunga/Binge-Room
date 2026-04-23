@@ -59,9 +59,13 @@ docs/superpowers/
 findings.md
 progress.md
 task_plan.md
-.claude/*
+.claude/
 !.claude/CLAUDE.md
 !.claude/settings.json
+!.claude/settings.local.json
+!.claude/projects/
+!.claude/skills/
+!.claude/skill-lock.json
 
 # ─── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
@@ -154,5 +158,9 @@ ollama.log
 *.gguf
 
 coderabbit_feedback.json
-/generated/prisma
-skills-lock.json
+
+# ─── Agent Discovery & Skills ────────────────────────────────────────────────
+.agents/                 # Ignore local agent discovery symlinks
+.claude/skills/          # Ignore project-specific skill symlinks
+.codex/                  # Ignore the cloned superpowers source code
+! .claude/skill-lock.json # COMMIT this to keep skill versions in sync

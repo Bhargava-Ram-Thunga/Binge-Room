@@ -4,3 +4,7 @@ export const MAX_CHAT_HISTORY = 50
 export const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000] as const
 export const MAX_MESSAGE_LENGTH = 500
 export const MAX_ROOM_MEMBERS = 10
+export const ALLOWED_REACTIONS = ['🎉', '😂', '❤️', '😮', '👏', '🔥'] as const
+export const INVITE_TOKEN_EXPIRY_HOURS = 72
+export const ROOM_ID_LENGTH = 8
+export const INVITE_TOKEN_LENGTH = 16
