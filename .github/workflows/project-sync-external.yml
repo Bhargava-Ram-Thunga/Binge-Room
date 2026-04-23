@@ -1,0 +1,42 @@
+name: Project Sync External
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  sync-shipped-to-closed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issues marked as Shipped on board
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          PROJECT_ID: PVT_kwHOBd-eFs4BU-R3
+          FIELD_ID: PVTSSF_lAHOBd-eFs4BU-R3zhPJxp4
+          SHIPPED_OPTION_ID: 9d1ea668
+        run: |
+          echo "Querying project for items in Shipped status..."
+
+          # Get list of items that are in 'Shipped' status
+          # We filter the items list for those where the status field matches the SHIPPED_OPTION_ID
+          SHIPPED_ITEMS=$(gh project item-list "$PROJECT_ID" --owner "Bhargava-Ram-Thunga" --format json | jq -r '.items[] | select(.status == "Shipped") | .content.id')
+
+          if [ -z "$SHIPPED_ITEMS" ]; then
+            echo "No items in Shipped status found."
+            exit 0
+          fi
+
+          for ITEM_NODE_ID in $SHIPPED_ITEMS; do
+            echo "Checking issue $ITEM_NODE_ID..."
+            # Check if the issue is still open
+            # gh issue view returns 0 if it exists, but we check state via jq
+            STATE=$(gh issue view "$ITEM_NODE_ID" --json state --jq '.state')
+
+            if [ "$STATE" == "open" ]; then
+              echo "Closing open issue $ITEM_NODE_ID"
+              gh issue close "$ITEM_NODE_ID"
+            else
+              echo "Issue $ITEM_NODE_ID is already $STATE. Skipping."
+            fi
+          done

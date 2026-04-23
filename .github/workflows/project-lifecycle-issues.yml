@@ -1,0 +1,26 @@
+name: Project Lifecycle - Issues
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  sync-to-shipped:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move closed issue to Shipped
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          PROJECT_ID: PVT_kwHOBd-eFs4BU-R3
+          FIELD_ID: PVTSSF_lAHOBd-eFs4BU-R3zhPJxp4
+          SHIPPED_OPTION_ID: 9d1ea668
+        run: |
+          # Find the project item ID for this closed issue
+          ITEM_ID=$(gh project item-list "$PROJECT_ID" --owner "Bhargava-Ram-Thunga" --format json | jq -r '.items[] | select(.content.id == "${{ github.event.issue.node_id }}") | .id')
+
+          if [ -n "$ITEM_ID" ]; then
+            echo "Moving item $ITEM_ID to Shipped"
+            gh project item-edit --id "$ITEM_ID" --field-id "$FIELD_ID" --single-select-option-id "$SHIPPED_OPTION_ID" --project-id "$PROJECT_ID"
+          else
+            echo "Issue is not tracked on the project board. Skipping."
+          fi
