@@ -1,0 +1,56 @@
+name: "Auto Release"
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  tag-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Simple logic: if any commit since last tag is 'feat', minor bump. Otherwise patch.
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          COMMITS=$(git log $LAST_TAG..HEAD --oneline)
+
+          if echo "$COMMITS" | grep -q "feat("; then
+            BUMP="minor"
+          else
+            BUMP="patch"
+          fi
+          echo "bump=$BUMP" >> $GITHUB_OUTPUT
+          echo "Last tag: $LAST_TAG, Bump: $BUMP"
+
+      - name: Generate next version
+        id: version
+        run: |
+          # Actual version parsing
+          V=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # strip 'v'
+          VERSION=${V#v}
+          IFS='.' read -r major minor patch <<< "$VERSION"
+
+          if [ "${{ steps.bump.outputs.bump }}" == "minor" ]; then
+            NEW_V="v$major.$((minor+1)).0"
+          else
+            NEW_V="v$major.$minor.$((patch+1))"
+          fi
+          echo "new_tag=$NEW_V" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=${{ steps.version.outputs.new_tag }}
+          git tag $TAG
+          git push origin $TAG
+          gh release create $TAG --title "$TAG" --generate-notes
