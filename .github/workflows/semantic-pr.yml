@@ -1,0 +1,40 @@
+name: "Semantic PR"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  semantic-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        with:
+          types: |
+            feat
+            fix
+            test
+            refactor
+            chore
+            security
+            perf
+            docs
+          scopes: |
+            shared
+            backend
+            ws
+            rest
+            auth
+            db
+            redis
+            sync
+            ext
+            content
+            overlay
+            web
+            env
+            monorepo
+          requireScope: true
