@@ -1,0 +1,21 @@
+{
+  "system_dependencies": ["zstd", "pciutils", "lshw", "jq", "curl"],
+  "global_npm_packages": ["@anthropic-ai/claude-code"],
+  "plugins": [
+    { "id": "obra/superpowers-marketplace", "global": true },
+    { "id": "sherifkozman/the-llm-council", "global": true }
+  ],
+  "skills": [
+    "OthmanAdi/planning-with-files",
+    "anthropics/claude-code:frontend-design",
+    "anthropics/claude-code:simplify",
+    "anthropics/claude-code:batch",
+    "addyosmani/web-quality-skills",
+    "unicodeveloper/shannon",
+    "antigravity-awesome-skills"
+  ],
+  "runtime": {
+    "ollama_model": "gemma4:31b-cloud",
+    "ollama_serve_command": "nohup ollama serve > /tmp/ollama.log 2>&1 &"
+  }
+}
