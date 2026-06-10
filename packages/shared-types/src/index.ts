@@ -1,12 +1,12 @@
 // ─── Platform Types ───────────────────────────────────────────────────────────
 
 export type Platform =
-  | 'youtube'
-  | 'netflix'
-  | 'prime'
-  | 'disney'
-  | 'twitch'
-  | 'vimeo';
+  | "youtube"
+  | "netflix"
+  | "prime"
+  | "disney"
+  | "twitch"
+  | "vimeo";
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export interface VideoState {
 
 export interface Room {
   id: string;
-  code: string;           // 6-digit alphanumeric join code
+  code: string; // 6-digit alphanumeric join code
   hostId: string;
   users: User[];
   videoState: VideoState;
@@ -72,33 +72,33 @@ export interface BaseSyncEvent {
 // ─── Client → Server Events ───────────────────────────────────────────────────
 
 export interface PlayPayload extends BaseSyncEvent {
-  type: 'PLAY';
+  type: "PLAY";
   currentTime: number;
 }
 
 export interface PausePayload extends BaseSyncEvent {
-  type: 'PAUSE';
+  type: "PAUSE";
   currentTime: number;
 }
 
 export interface SeekPayload extends BaseSyncEvent {
-  type: 'SEEK';
+  type: "SEEK";
   currentTime: number;
 }
 
 export interface VideoChangePayload extends BaseSyncEvent {
-  type: 'VIDEO_CHANGE';
+  type: "VIDEO_CHANGE";
   videoId: string;
   videoUrl: string;
 }
 
 export interface AdStartPayload extends BaseSyncEvent {
-  type: 'AD_START';
+  type: "AD_START";
   currentTime: number;
 }
 
 export interface AdEndPayload extends BaseSyncEvent {
-  type: 'AD_END';
+  type: "AD_END";
   resumeTime: number;
 }
 
@@ -117,7 +117,7 @@ export interface CreateRoomPayload {
 }
 
 export interface SyncStatePayload extends BaseSyncEvent {
-  type: 'SYNC_STATE';
+  type: "SYNC_STATE";
   videoState: VideoState;
 }
 
@@ -150,7 +150,14 @@ export interface SyncUpdatePayload {
   serverTime: number;
   triggeredBy: string;
   triggeredByName: string;
-  action: 'PLAY' | 'PAUSE' | 'SEEK' | 'VIDEO_CHANGE' | 'AD_START' | 'AD_END' | 'PLAYBACK_RATE_CHANGE';
+  action:
+    | "PLAY"
+    | "PAUSE"
+    | "SEEK"
+    | "VIDEO_CHANGE"
+    | "AD_START"
+    | "AD_END"
+    | "PLAYBACK_RATE_CHANGE";
 }
 
 export interface RoomStatePayload {
@@ -177,15 +184,15 @@ export interface ErrorPayload {
 // ─── Chrome Extension Message Types ──────────────────────────────────────────
 
 export type ExtensionMessageType =
-  | 'CREATE_ROOM'
-  | 'JOIN_ROOM'
-  | 'LEAVE_ROOM'
-  | 'GET_ROOM_STATE'
-  | 'VIDEO_EVENT'
-  | 'SYNC_COMMAND'
-  | 'CONNECTION_STATUS'
-  | 'ROOM_UPDATE'
-  | 'SHOW_TOAST';
+  | "CREATE_ROOM"
+  | "JOIN_ROOM"
+  | "LEAVE_ROOM"
+  | "GET_ROOM_STATE"
+  | "VIDEO_EVENT"
+  | "SYNC_COMMAND"
+  | "CONNECTION_STATUS"
+  | "ROOM_UPDATE"
+  | "SHOW_TOAST";
 
 export interface ExtensionMessage<T = unknown> {
   type: ExtensionMessageType;
@@ -203,7 +210,7 @@ export interface ConnectionStatus {
 
 // ─── Toast Notification Types ─────────────────────────────────────────────────
 
-export type ToastType = 'info' | 'success' | 'warning' | 'error';
+export type ToastType = "info" | "success" | "warning" | "error";
 
 export interface ToastNotification {
   id: string;

@@ -1,9 +1,9 @@
 // ─── Room ID / Code Generation ────────────────────────────────────────────────
 
-const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I, O, 0, 1
 
 export function generateRoomCode(): string {
-  let code = '';
+  let code = "";
   for (let i = 0; i < 6; i++) {
     code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
   }
@@ -11,8 +11,8 @@ export function generateRoomCode(): string {
 }
 
 export function generateRoomId(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let id = '';
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let id = "";
   for (let i = 0; i < 20; i++) {
     id += chars[Math.floor(Math.random() * chars.length)];
   }
@@ -31,9 +31,9 @@ export function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60);
 
   if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 // ─── Debounce ─────────────────────────────────────────────────────────────────
@@ -68,7 +68,12 @@ export function throttle<T extends (...args: unknown[]) => void>(
 // ─── Drift Correction ─────────────────────────────────────────────────────────
 
 export function computeExpectedTime(
-  videoState: { currentTime: number; isPlaying: boolean; lastUpdated: number; playbackRate?: number },
+  videoState: {
+    currentTime: number;
+    isPlaying: boolean;
+    lastUpdated: number;
+    playbackRate?: number;
+  },
   serverTime: number,
 ): number {
   if (!videoState.isPlaying) return videoState.currentTime;
@@ -109,17 +114,27 @@ export function buildYouTubeUrl(videoId: string, time?: number): string {
 // ─── String Sanitization ──────────────────────────────────────────────────────
 
 export function sanitizeUsername(name: string): string {
-  return name.trim().replace(/[<>&"'/]/g, '').slice(0, 32) || 'Anonymous';
+  return (
+    name
+      .trim()
+      .replace(/[<>&"'/]/g, "")
+      .slice(0, 32) || "Anonymous"
+  );
 }
 
 // ─── Invite Link ──────────────────────────────────────────────────────────────
 
-export function buildInviteLink(code: string, baseUrl = 'https://bingeroom.app'): string {
+export function buildInviteLink(
+  code: string,
+  baseUrl = "https://bingeroom.app",
+): string {
   return `${baseUrl}/join/${code}`;
 }
 
 // ─── Unique ID (for toasts, etc.) ────────────────────────────────────────────
 
 export function nanoid(length = 8): string {
-  return Math.random().toString(36).slice(2, 2 + length);
+  return Math.random()
+    .toString(36)
+    .slice(2, 2 + length);
 }

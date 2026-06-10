@@ -1,10 +1,10 @@
-import Redis from 'ioredis';
-import type { Room, VideoState } from '@binge-room/shared-types';
-import { config } from '../config/index.js';
-import { logger } from '../utils/logger.js';
+import Redis from "ioredis";
+import type { Room, VideoState } from "@binge-room/shared-types";
+import { config } from "../config/index.js";
+import { logger } from "../utils/logger.js";
 
-const ROOM_PREFIX = 'room:';
-const CODE_INDEX_PREFIX = 'code:';
+const ROOM_PREFIX = "room:";
+const CODE_INDEX_PREFIX = "code:";
 
 // ─── In-memory fallback store ─────────────────────────────────────────────────
 // Used automatically when Redis is unavailable (e.g. local dev without Docker).
@@ -34,7 +34,9 @@ class MemoryStore {
     this.rooms.delete(roomId);
   }
 
-  ping(): boolean { return true; }
+  ping(): boolean {
+    return true;
+  }
 }
 
 // ─── RedisAdapter with transparent in-memory fallback ────────────────────────
@@ -52,18 +54,18 @@ export class RedisAdapter {
       connectTimeout: 3000,
     });
 
-    this.client.on('connect', () => {
+    this.client.on("connect", () => {
       this.isConnected = true;
-      logger.info('Redis connected — using Redis for room persistence');
+      logger.info("Redis connected — using Redis for room persistence");
     });
 
-    this.client.on('error', () => {
+    this.client.on("error", () => {
       // Suppress repeated error spam; we already warned on connect failure
     });
 
-    this.client.on('close', () => {
+    this.client.on("close", () => {
       if (this.isConnected) {
-        logger.warn('Redis disconnected — falling back to in-memory store');
+        logger.warn("Redis disconnected — falling back to in-memory store");
       }
       this.isConnected = false;
     });
@@ -83,12 +85,22 @@ export class RedisAdapter {
     if (this.isConnected) {
       try {
         const pipeline = this.client.pipeline();
-        pipeline.set(`${ROOM_PREFIX}${room.id}`, JSON.stringify(room), 'EX', config.roomTtlSeconds);
-        pipeline.set(`${CODE_INDEX_PREFIX}${room.code}`, room.id, 'EX', config.roomTtlSeconds);
+        pipeline.set(
+          `${ROOM_PREFIX}${room.id}`,
+          JSON.stringify(room),
+          "EX",
+          config.roomTtlSeconds,
+        );
+        pipeline.set(
+          `${CODE_INDEX_PREFIX}${room.code}`,
+          room.id,
+          "EX",
+          config.roomTtlSeconds,
+        );
         await pipeline.exec();
         return;
       } catch (err) {
-        logger.warn('Redis saveRoom failed, using memory', { err });
+        logger.warn("Redis saveRoom failed, using memory", { err });
       }
     }
     await this.memStore.saveRoom(room);
@@ -110,7 +122,9 @@ export class RedisAdapter {
   async getRoomByCode(code: string): Promise<Room | null> {
     if (this.isConnected) {
       try {
-        const roomId = await this.client.get(`${CODE_INDEX_PREFIX}${code.toUpperCase()}`);
+        const roomId = await this.client.get(
+          `${CODE_INDEX_PREFIX}${code.toUpperCase()}`,
+        );
         if (!roomId) return null;
         return this.getRoom(roomId);
       } catch {
@@ -138,7 +152,10 @@ export class RedisAdapter {
     await this.memStore.deleteRoom(roomId);
   }
 
-  async updateVideoState(roomId: string, videoState: VideoState): Promise<void> {
+  async updateVideoState(
+    roomId: string,
+    videoState: VideoState,
+  ): Promise<void> {
     const room = await this.getRoom(roomId);
     if (!room) return;
     room.videoState = videoState;
@@ -149,14 +166,18 @@ export class RedisAdapter {
   async ping(): Promise<boolean> {
     if (!this.isConnected) return this.memStore.ping();
     try {
-      return (await this.client.ping()) === 'PONG';
+      return (await this.client.ping()) === "PONG";
     } catch {
       return false;
     }
   }
 
   async disconnect(): Promise<void> {
-    try { await this.client.quit(); } catch { /* ignore */ }
+    try {
+      await this.client.quit();
+    } catch {
+      /* ignore */
+    }
   }
 }
 

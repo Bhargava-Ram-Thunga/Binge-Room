@@ -63,26 +63,31 @@
 ## Key Design Decisions
 
 ### Feedback Loop Prevention
+
 The `applying` flag in `SyncEngine` prevents the engine from re-emitting
 events it triggered itself. The server also ignores events from the same
 socket that triggered the update (the `triggeredBy` check on clients).
 
 ### Host Authority
+
 All sync events from all users are forwarded to the server. The server
 is the single source of truth — it accepts events from anyone in the
 room and broadcasts to everyone else. The host concept determines who
 controls video navigation but doesn't affect event validation.
 
 ### MV3 Service Worker Persistence
+
 Manifest V3 service workers can be terminated after ~30 seconds of
 inactivity. Binge-Room uses a keepalive alarm (`chrome.alarms`) to
 ping the server every 24 seconds while in an active room.
 
 ### Shadow DOM Isolation
+
 Both `ToastManager` and `RoomOverlay` use Shadow DOM to prevent
 CSS conflicts with YouTube's page styles.
 
 ### Platform Adapter Pattern
+
 Adding Netflix/Prime/etc. = create a new class extending `BaseAdapter`,
 implement all abstract methods, register with `AdapterRegistry`. Zero
 changes to `SyncEngine` or the background worker.

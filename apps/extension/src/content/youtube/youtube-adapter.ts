@@ -7,10 +7,10 @@
  * in the page's isolated JS world and is not reliably reachable.
  */
 
-import { BaseAdapter } from '@binge-room/platform-sdk';
-import type { VideoState } from '../../types/index.js';
-import { extractYouTubeVideoId } from '@binge-room/shared-utils';
-import { debounce } from '@binge-room/shared-utils';
+import { BaseAdapter } from "@binge-room/platform-sdk";
+import type { VideoState } from "../../types/index.js";
+import { extractYouTubeVideoId } from "@binge-room/shared-utils";
+import { debounce } from "@binge-room/shared-utils";
 
 const YT_STATE = {
   PLAYING: 1,
@@ -18,23 +18,23 @@ const YT_STATE = {
 } as const;
 
 export class YouTubeAdapter extends BaseAdapter {
-  readonly platform = 'youtube' as const;
+  readonly platform = "youtube" as const;
 
   // ─── Element accessors ────────────────────────────────────────────────────
 
   private get videoEl(): HTMLVideoElement | null {
     return (
-      document.querySelector<HTMLVideoElement>('#movie_player video') ??
-      document.querySelector<HTMLVideoElement>('.html5-main-video') ??
-      document.querySelector<HTMLVideoElement>('video.video-stream') ??
-      document.querySelector<HTMLVideoElement>('video')   // last resort
+      document.querySelector<HTMLVideoElement>("#movie_player video") ??
+      document.querySelector<HTMLVideoElement>(".html5-main-video") ??
+      document.querySelector<HTMLVideoElement>("video.video-stream") ??
+      document.querySelector<HTMLVideoElement>("video") // last resort
     );
   }
 
   /** YouTube player element — used only for read-only state queries. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private get ytPlayer(): any {
-    return document.getElementById('movie_player');
+    return document.getElementById("movie_player");
   }
 
   // ─── PlatformAdapter impl ─────────────────────────────────────────────────
@@ -44,10 +44,7 @@ export class YouTubeAdapter extends BaseAdapter {
    * We no longer gate on YouTube's proprietary API (seekTo etc.).
    */
   isActive(): boolean {
-    return (
-      window.location.hostname.includes('youtube.com') &&
-      !!this.videoEl
-    );
+    return window.location.hostname.includes("youtube.com") && !!this.videoEl;
   }
 
   /**
@@ -65,7 +62,9 @@ export class YouTubeAdapter extends BaseAdapter {
     try {
       const vd = this.ytPlayer?.getVideoData?.();
       if (vd?.video_id) return vd.video_id;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return extractYouTubeVideoId(window.location.href);
   }
 
@@ -85,8 +84,8 @@ export class YouTubeAdapter extends BaseAdapter {
 
   isAdPlaying(): boolean {
     return (
-      !!document.querySelector('.ytp-ad-player-overlay') ||
-      !!document.querySelector('.ytp-ad-skip-button') ||
+      !!document.querySelector(".ytp-ad-player-overlay") ||
+      !!document.querySelector(".ytp-ad-skip-button") ||
       !!document.querySelector('[class*="ad-showing"]')
     );
   }
@@ -101,7 +100,14 @@ export class YouTubeAdapter extends BaseAdapter {
         const v2 = this.videoEl;
         if (!v2) return;
         observer.disconnect();
-        try { if (typeof this.ytPlayer?.playVideo === 'function') { this.ytPlayer.playVideo(); return; } } catch { /* ignore */ }
+        try {
+          if (typeof this.ytPlayer?.playVideo === "function") {
+            this.ytPlayer.playVideo();
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
         v2.play().catch(() => {});
       });
       observer.observe(document.body, { subtree: true, childList: true });
@@ -110,11 +116,13 @@ export class YouTubeAdapter extends BaseAdapter {
     }
     // Try YouTube API first for better buffering behaviour; fall back to DOM
     try {
-      if (typeof this.ytPlayer?.playVideo === 'function') {
+      if (typeof this.ytPlayer?.playVideo === "function") {
         this.ytPlayer.playVideo();
         return;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     v.play().catch(() => {});
   }
 
@@ -122,11 +130,13 @@ export class YouTubeAdapter extends BaseAdapter {
     const v = this.videoEl;
     if (!v) return;
     try {
-      if (typeof this.ytPlayer?.pauseVideo === 'function') {
+      if (typeof this.ytPlayer?.pauseVideo === "function") {
         this.ytPlayer.pauseVideo();
         return;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     v.pause();
   }
 
@@ -142,9 +152,20 @@ export class YouTubeAdapter extends BaseAdapter {
         observer.disconnect();
         v2.currentTime = time;
         if (v2.readyState < 1) {
-          v2.addEventListener('loadedmetadata', () => { v2.currentTime = time; }, { once: true });
+          v2.addEventListener(
+            "loadedmetadata",
+            () => {
+              v2.currentTime = time;
+            },
+            { once: true },
+          );
         }
-        try { if (typeof this.ytPlayer?.seekTo === 'function') this.ytPlayer.seekTo(time, true); } catch { /* ignore */ }
+        try {
+          if (typeof this.ytPlayer?.seekTo === "function")
+            this.ytPlayer.seekTo(time, true);
+        } catch {
+          /* ignore */
+        }
       });
       observer.observe(document.body, { subtree: true, childList: true });
       // Self-cleanup after 15 s to avoid leaking observers on page unload
@@ -155,10 +176,12 @@ export class YouTubeAdapter extends BaseAdapter {
     const doSeek = () => {
       v.currentTime = time;
       try {
-        if (typeof this.ytPlayer?.seekTo === 'function') {
+        if (typeof this.ytPlayer?.seekTo === "function") {
           this.ytPlayer.seekTo(time, true);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
 
     // Primary seek — works immediately if metadata is loaded
@@ -167,7 +190,7 @@ export class YouTubeAdapter extends BaseAdapter {
     // Safety net: if metadata wasn't loaded yet, YouTube's init may reset
     // currentTime after our set.  Re-apply once metadata arrives.
     if (v.readyState < 1) {
-      v.addEventListener('loadedmetadata', doSeek, { once: true });
+      v.addEventListener("loadedmetadata", doSeek, { once: true });
     }
   }
 
@@ -183,7 +206,7 @@ export class YouTubeAdapter extends BaseAdapter {
 
   getVideoState(): Partial<VideoState> {
     return {
-      videoId: this.getVideoId() ?? '',
+      videoId: this.getVideoId() ?? "",
       videoUrl: this.getVideoUrl(),
       currentTime: this.getCurrentTime(),
       isPlaying: this.isPlaying(),
@@ -215,13 +238,15 @@ export class YouTubeAdapter extends BaseAdapter {
 
   onPlay(callback: (time: number) => void): () => void {
     const fire = this.makeDeduped(callback);
-    const docH = (e: Event) => { if (this.isVideoTarget(e)) fire(); };
-    document.addEventListener('play', docH, true);
+    const docH = (e: Event) => {
+      if (this.isVideoTarget(e)) fire();
+    };
+    document.addEventListener("play", docH, true);
     const v = this.videoEl;
-    if (v) v.addEventListener('play', fire);
+    if (v) v.addEventListener("play", fire);
     const cleanup = () => {
-      document.removeEventListener('play', docH, true);
-      if (v) v.removeEventListener('play', fire);
+      document.removeEventListener("play", docH, true);
+      if (v) v.removeEventListener("play", fire);
     };
     this.addCleanup(cleanup);
     return cleanup;
@@ -229,13 +254,15 @@ export class YouTubeAdapter extends BaseAdapter {
 
   onPause(callback: (time: number) => void): () => void {
     const fire = this.makeDeduped(callback);
-    const docH = (e: Event) => { if (this.isVideoTarget(e)) fire(); };
-    document.addEventListener('pause', docH, true);
+    const docH = (e: Event) => {
+      if (this.isVideoTarget(e)) fire();
+    };
+    document.addEventListener("pause", docH, true);
     const v = this.videoEl;
-    if (v) v.addEventListener('pause', fire);
+    if (v) v.addEventListener("pause", fire);
     const cleanup = () => {
-      document.removeEventListener('pause', docH, true);
-      if (v) v.removeEventListener('pause', fire);
+      document.removeEventListener("pause", docH, true);
+      if (v) v.removeEventListener("pause", fire);
     };
     this.addCleanup(cleanup);
     return cleanup;
@@ -250,28 +277,34 @@ export class YouTubeAdapter extends BaseAdapter {
       lastFire = now;
       if (!this.isAdPlaying()) debouncedCb(this.getCurrentTime());
     };
-    const docH = (e: Event) => { if (this.isVideoTarget(e)) fire(); };
-    document.addEventListener('seeked', docH, true);
+    const docH = (e: Event) => {
+      if (this.isVideoTarget(e)) fire();
+    };
+    document.addEventListener("seeked", docH, true);
     const v = this.videoEl;
-    if (v) v.addEventListener('seeked', fire);
+    if (v) v.addEventListener("seeked", fire);
     const cleanup = () => {
-      document.removeEventListener('seeked', docH, true);
-      if (v) v.removeEventListener('seeked', fire);
+      document.removeEventListener("seeked", docH, true);
+      if (v) v.removeEventListener("seeked", fire);
     };
     this.addCleanup(cleanup);
     return cleanup;
   }
 
-  onVideoChange(callback: (videoId: string, videoUrl: string) => void): () => void {
+  onVideoChange(
+    callback: (videoId: string, videoUrl: string) => void,
+  ): () => void {
     const handler = () => {
       setTimeout(() => {
         const videoId = this.getVideoId();
         if (videoId) callback(videoId, this.getVideoUrl());
       }, 500);
     };
-    document.addEventListener('yt-navigate-finish', handler);
-    this.addCleanup(() => document.removeEventListener('yt-navigate-finish', handler));
-    return () => document.removeEventListener('yt-navigate-finish', handler);
+    document.addEventListener("yt-navigate-finish", handler);
+    this.addCleanup(() =>
+      document.removeEventListener("yt-navigate-finish", handler),
+    );
+    return () => document.removeEventListener("yt-navigate-finish", handler);
   }
 
   onAdStart(callback: (currentTime: number) => void): () => void {
@@ -281,8 +314,13 @@ export class YouTubeAdapter extends BaseAdapter {
       if (!wasAd && isAd) callback(this.getCurrentTime());
       wasAd = isAd;
     });
-    const target = document.querySelector('#movie_player') ?? document.body;
-    observer.observe(target, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+    const target = document.querySelector("#movie_player") ?? document.body;
+    observer.observe(target, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     this.addCleanup(() => observer.disconnect());
     return () => observer.disconnect();
   }
@@ -294,8 +332,13 @@ export class YouTubeAdapter extends BaseAdapter {
       if (wasAd && !isAd) callback(this.getCurrentTime());
       wasAd = isAd;
     });
-    const target = document.querySelector('#movie_player') ?? document.body;
-    observer.observe(target, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+    const target = document.querySelector("#movie_player") ?? document.body;
+    observer.observe(target, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     this.addCleanup(() => observer.disconnect());
     return () => observer.disconnect();
   }
@@ -314,13 +357,15 @@ export class YouTubeAdapter extends BaseAdapter {
       debouncedCb(rate);
     };
 
-    const docH = (e: Event) => { if (this.isVideoTarget(e)) fire(); };
-    document.addEventListener('ratechange', docH, true);
+    const docH = (e: Event) => {
+      if (this.isVideoTarget(e)) fire();
+    };
+    document.addEventListener("ratechange", docH, true);
     const v = this.videoEl;
-    if (v) v.addEventListener('ratechange', fire);
+    if (v) v.addEventListener("ratechange", fire);
     const cleanup = () => {
-      document.removeEventListener('ratechange', docH, true);
-      if (v) v.removeEventListener('ratechange', fire);
+      document.removeEventListener("ratechange", docH, true);
+      if (v) v.removeEventListener("ratechange", fire);
     };
     this.addCleanup(cleanup);
     return cleanup;

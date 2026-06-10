@@ -1,6 +1,6 @@
-import type { Socket } from 'socket.io';
-import { config } from '../config/index.js';
-import { logger } from '../utils/logger.js';
+import type { Socket } from "socket.io";
+import { config } from "../config/index.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Per-socket event rate limiter.
@@ -19,7 +19,7 @@ export class SocketRateLimiter {
       const count = (this.eventCounts.get(key) ?? 0) + 1;
       this.eventCounts.set(key, count);
       if (count > 5) {
-        logger.warn('Socket rate limit exceeded', { socketId, event });
+        logger.warn("Socket rate limit exceeded", { socketId, event });
       }
       return false;
     }

@@ -4,33 +4,33 @@
 
 // Client → Server
 export const CLIENT_EVENTS = {
-  JOIN_ROOM: 'join_room',
-  LEAVE_ROOM: 'leave_room',
-  CREATE_ROOM: 'create_room',
-  PLAY: 'play',
-  PAUSE: 'pause',
-  SEEK: 'seek',
-  VIDEO_CHANGE: 'video_change',
-  AD_START: 'ad_start',
-  AD_END: 'ad_end',
-  SYNC_STATE: 'sync_state',
-  PING: 'ping',
-  LOCK_CONTROLS: 'lock_controls',
-  PLAYBACK_RATE_CHANGE: 'playback_rate_change',
+  JOIN_ROOM: "join_room",
+  LEAVE_ROOM: "leave_room",
+  CREATE_ROOM: "create_room",
+  PLAY: "play",
+  PAUSE: "pause",
+  SEEK: "seek",
+  VIDEO_CHANGE: "video_change",
+  AD_START: "ad_start",
+  AD_END: "ad_end",
+  SYNC_STATE: "sync_state",
+  PING: "ping",
+  LOCK_CONTROLS: "lock_controls",
+  PLAYBACK_RATE_CHANGE: "playback_rate_change",
 } as const;
 
 // Server → Client
 export const SERVER_EVENTS = {
-  ROOM_JOINED: 'room_joined',
-  ROOM_CREATED: 'room_created',
-  USER_JOINED: 'user_joined',
-  USER_LEFT: 'user_left',
-  SYNC_UPDATE: 'sync_update',
-  ROOM_STATE: 'room_state',
-  HOST_CHANGED: 'host_changed',
-  CONTROLS_CHANGED: 'controls_changed',
-  PONG: 'pong',
-  ERROR: 'error',
+  ROOM_JOINED: "room_joined",
+  ROOM_CREATED: "room_created",
+  USER_JOINED: "user_joined",
+  USER_LEFT: "user_left",
+  SYNC_UPDATE: "sync_update",
+  ROOM_STATE: "room_state",
+  HOST_CHANGED: "host_changed",
+  CONTROLS_CHANGED: "controls_changed",
+  PONG: "pong",
+  ERROR: "error",
 } as const;
 
 export type ClientEvent = (typeof CLIENT_EVENTS)[keyof typeof CLIENT_EVENTS];
@@ -39,16 +39,16 @@ export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];
 // ─── Error Codes ──────────────────────────────────────────────────────────────
 
 export const ERROR_CODES = {
-  ROOM_NOT_FOUND: 'ROOM_NOT_FOUND',
-  ROOM_FULL: 'ROOM_FULL',
-  INVALID_CODE: 'INVALID_CODE',
-  INVALID_ROOM_ID: 'INVALID_ROOM_ID',
-  ALREADY_IN_ROOM: 'ALREADY_IN_ROOM',
-  NOT_IN_ROOM: 'NOT_IN_ROOM',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  RATE_LIMITED: 'RATE_LIMITED',
-  INVALID_PAYLOAD: 'INVALID_PAYLOAD',
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  ROOM_NOT_FOUND: "ROOM_NOT_FOUND",
+  ROOM_FULL: "ROOM_FULL",
+  INVALID_CODE: "INVALID_CODE",
+  INVALID_ROOM_ID: "INVALID_ROOM_ID",
+  ALREADY_IN_ROOM: "ALREADY_IN_ROOM",
+  NOT_IN_ROOM: "NOT_IN_ROOM",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  RATE_LIMITED: "RATE_LIMITED",
+  INVALID_PAYLOAD: "INVALID_PAYLOAD",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

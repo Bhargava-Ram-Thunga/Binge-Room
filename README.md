@@ -8,17 +8,19 @@ A production-grade, scalable watch party platform built as a Chrome Extension (M
 
 ## ✨ Features
 
-| Feature | Status |
-|---|---|
-| YouTube playback sync (play/pause/seek) | ✅ Phase 1 |
-| Room creation with 6-digit join code + invite link | ✅ Phase 1 |
-| ±500ms drift correction | ✅ Phase 1 |
-| Ad detection & peer pause during ads | ✅ Phase 1 |
-| Animated toast notifications | ✅ Phase 1 |
-| In-video overlay (room code + participant count) | ✅ Phase 1 |
-| Auto-reconnect & state restoration | ✅ Phase 1 |
-| Multi-platform adapters (Netflix, Prime…) | 🔜 Phase 3 |
-| Voice/group chat | 🔜 Phase 3 |
+| Feature                                            | Status        |
+| -------------------------------------------------- | ------------- |
+| YouTube playback sync (play/pause/seek)            | ✅ Completed  |
+| Room creation with 6-digit join code + invite link | ✅ Completed  |
+| ±500ms drift correction & state recovery           | ✅ Completed  |
+| YouTube ad detection & peer pause during ads       | ✅ Completed  |
+| Animated toast notifications                       | ✅ Completed  |
+| In-video overlay (room code + participant count)   | ✅ Completed  |
+| Auto-reconnect & state restoration                 | ✅ Completed  |
+| JioCinema & Hotstar playback sync                  | 🔜 Next Phase |
+| Firefox & Cross-browser support (Gecko engine)     | 🔜 Next Phase |
+| Voice/group chat (Daily.co)                        | 🔜 Phase 3    |
+| Netflix, Prime Video, Disney+, Twitch adapters     | 🔜 Phase 3    |
 
 ---
 
@@ -170,35 +172,36 @@ Server is exposed on port `4000`. Configure `CLIENT_ORIGIN` in
 
 ## ⚙ Environment Variables (Server)
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `4000` | HTTP port |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
-| `CLIENT_ORIGIN` | `*` | CORS / Socket.IO allowed origins |
-| `MAX_ROOM_USERS` | `20` | Participants per room |
-| `ROOM_TTL_SECONDS` | `86400` | Room expiry (24 h) |
+| Variable           | Default                  | Description                      |
+| ------------------ | ------------------------ | -------------------------------- |
+| `PORT`             | `4000`                   | HTTP port                        |
+| `REDIS_URL`        | `redis://localhost:6379` | Redis connection string          |
+| `CLIENT_ORIGIN`    | `*`                      | CORS / Socket.IO allowed origins |
+| `MAX_ROOM_USERS`   | `20`                     | Participants per room            |
+| `ROOM_TTL_SECONDS` | `86400`                  | Room expiry (24 h)               |
 
 ---
 
 ## 📦 Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Extension UI | React 18 + Tailwind CSS v3 + Zustand |
-| Extension build | Vite (popup) + esbuild (bg + content) |
-| Extension API | Chrome MV3 — Service Worker, Messaging, Storage |
-| Real-time | Socket.IO v4 over WebSocket |
-| Server | Node.js 20 + Express + TypeScript |
-| Validation | Zod |
-| State | Redis 7 (ioredis) |
-| Logging | Winston |
-| Monorepo | pnpm workspaces + Turborepo |
-| Containers | Docker + Docker Compose |
+| Layer           | Technology                                      |
+| --------------- | ----------------------------------------------- |
+| Extension UI    | React 18 + Tailwind CSS v3 + Zustand            |
+| Extension build | Vite (popup) + esbuild (bg + content)           |
+| Extension API   | Chrome MV3 — Service Worker, Messaging, Storage |
+| Real-time       | Socket.IO v4 over WebSocket                     |
+| Server          | Node.js 20 + Express + TypeScript               |
+| Validation      | Zod                                             |
+| State           | Redis 7 (ioredis)                               |
+| Logging         | Winston                                         |
+| Monorepo        | pnpm workspaces + Turborepo                     |
+| Containers      | Docker + Docker Compose                         |
 
 ---
 
 ## 🗺 Roadmap
 
-- **Phase 2** — Improved drift correction, ad sync hardening, reconnection recovery
-- **Phase 3** — Netflix, Prime Video, Disney+, Twitch adapters; voice & group chat
-- **Phase 4** — Mobile, AI recommendations, public rooms, streaming analytics
+- **Phase 1 (Completed)** — Core Watch Party Engine, YouTube Adapter, Sync Engine, Drift Correction, Ad Detection
+- **Phase 2 (Immediate Next)** — JioCinema & Hotstar Adapters, Firefox Compatibility & Cross-Browser functionality
+- **Phase 3 (Upcoming)** — Netflix, Prime Video, Disney+, Twitch adapters; Voice & Video group chat (Daily.co integration)
+- **Phase 4 (Future)** — Mobile support, AI recommendations, Public rooms, Streaming analytics

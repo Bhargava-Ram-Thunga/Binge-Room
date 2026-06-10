@@ -6,8 +6,8 @@
  * with YouTube's own styles.
  */
 
-import type { ToastNotification, ToastType } from '../../types/index.js';
-import { nanoid } from '@binge-room/shared-utils';
+import type { ToastNotification, ToastType } from "../../types/index.js";
+import { nanoid } from "@binge-room/shared-utils";
 
 const TOAST_DURATION_MS = 4000;
 const MAX_TOASTS = 5;
@@ -19,12 +19,21 @@ const ICONS: Record<ToastType, string> = {
   error: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
 };
 
-const COLORS: Record<ToastType, { bg: string; border: string; icon: string }> = {
-  info:    { bg: 'rgba(30, 41, 59, 0.95)',  border: '#3b82f6', icon: '#60a5fa' },
-  success: { bg: 'rgba(20, 47, 33, 0.95)',  border: '#22c55e', icon: '#4ade80' },
-  warning: { bg: 'rgba(55, 39, 12, 0.95)',  border: '#f59e0b', icon: '#fbbf24' },
-  error:   { bg: 'rgba(55, 18, 18, 0.95)',  border: '#ef4444', icon: '#f87171' },
-};
+const COLORS: Record<ToastType, { bg: string; border: string; icon: string }> =
+  {
+    info: { bg: "rgba(30, 41, 59, 0.95)", border: "#3b82f6", icon: "#60a5fa" },
+    success: {
+      bg: "rgba(20, 47, 33, 0.95)",
+      border: "#22c55e",
+      icon: "#4ade80",
+    },
+    warning: {
+      bg: "rgba(55, 39, 12, 0.95)",
+      border: "#f59e0b",
+      icon: "#fbbf24",
+    },
+    error: { bg: "rgba(55, 18, 18, 0.95)", border: "#ef4444", icon: "#f87171" },
+  };
 
 const CSS = `
   :host {
@@ -135,22 +144,22 @@ export class ToastManager {
   init(): void {
     if (this.host) return;
 
-    this.host = document.createElement('div');
-    this.host.id = 'binge-room-toasts';
-    this.shadow = this.host.attachShadow({ mode: 'closed' });
+    this.host = document.createElement("div");
+    this.host.id = "binge-room-toasts";
+    this.shadow = this.host.attachShadow({ mode: "closed" });
 
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = CSS;
 
-    this.container = document.createElement('div');
-    this.container.setAttribute('part', 'container');
+    this.container = document.createElement("div");
+    this.container.setAttribute("part", "container");
 
     this.shadow.appendChild(style);
     this.shadow.appendChild(this.container);
     document.documentElement.appendChild(this.host);
   }
 
-  show(notification: Omit<ToastNotification, 'id' | 'timestamp'>): void {
+  show(notification: Omit<ToastNotification, "id" | "timestamp">): void {
     this.init();
     if (!this.container) return;
 
@@ -162,32 +171,34 @@ export class ToastManager {
 
     const id = nanoid();
     const duration = notification.duration ?? TOAST_DURATION_MS;
-    const type = notification.type ?? 'info';
+    const type = notification.type ?? "info";
     const colors = COLORS[type];
 
-    const el = document.createElement('div');
-    el.className = 'toast entering';
-    el.setAttribute('role', 'alert');
+    const el = document.createElement("div");
+    el.className = "toast entering";
+    el.setAttribute("role", "alert");
     el.style.cssText = `background:${colors.bg}; border-color:${colors.border}; position:relative; overflow:hidden;`;
 
     el.innerHTML = `
       <div class="toast-icon" style="color:${colors.icon}">${ICONS[type]}</div>
       <div class="toast-content">
         <div class="toast-message">${escapeHtml(notification.message)}</div>
-        <div class="toast-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="toast-time">${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
       </div>
       <button class="toast-close" aria-label="Dismiss">×</button>
       <div class="progress-bar" style="background:${colors.border}; animation-duration:${duration}ms"></div>
     `;
 
-    el.querySelector('.toast-close')?.addEventListener('click', () => this.dismiss(id));
+    el.querySelector(".toast-close")?.addEventListener("click", () =>
+      this.dismiss(id),
+    );
 
     this.container.appendChild(el);
     this.toasts.set(id, el);
 
     // Trigger enter animation
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => el.classList.remove('entering'));
+      requestAnimationFrame(() => el.classList.remove("entering"));
     });
 
     // Auto-dismiss
@@ -198,11 +209,15 @@ export class ToastManager {
     const el = this.toasts.get(id);
     if (!el) return;
 
-    el.classList.add('leaving');
-    el.addEventListener('transitionend', () => {
-      el.remove();
-      this.toasts.delete(id);
-    }, { once: true });
+    el.classList.add("leaving");
+    el.addEventListener(
+      "transitionend",
+      () => {
+        el.remove();
+        this.toasts.delete(id);
+      },
+      { once: true },
+    );
   }
 
   destroy(): void {
@@ -216,9 +231,9 @@ export class ToastManager {
 
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

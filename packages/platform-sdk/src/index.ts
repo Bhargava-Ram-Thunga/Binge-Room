@@ -1,4 +1,4 @@
-import type { Platform, VideoState } from '@binge-room/shared-types';
+import type { Platform, VideoState } from "@binge-room/shared-types";
 
 // ─── Platform Adapter Interface ───────────────────────────────────────────────
 // Every streaming platform must implement this contract.
@@ -50,7 +50,9 @@ export interface PlatformAdapter {
   onPlay(callback: (time: number) => void): () => void;
   onPause(callback: (time: number) => void): () => void;
   onSeeked(callback: (time: number) => void): () => void;
-  onVideoChange(callback: (videoId: string, videoUrl: string) => void): () => void;
+  onVideoChange(
+    callback: (videoId: string, videoUrl: string) => void,
+  ): () => void;
   onAdStart(callback: (currentTime: number) => void): () => void;
   onAdEnd(callback: (resumeTime: number) => void): () => void;
   /** Fires when the user changes playback speed. Not fired for programmatic changes. */
@@ -101,7 +103,9 @@ export abstract class BaseAdapter implements PlatformAdapter {
   abstract onPlay(callback: (time: number) => void): () => void;
   abstract onPause(callback: (time: number) => void): () => void;
   abstract onSeeked(callback: (time: number) => void): () => void;
-  abstract onVideoChange(callback: (videoId: string, videoUrl: string) => void): () => void;
+  abstract onVideoChange(
+    callback: (videoId: string, videoUrl: string) => void,
+  ): () => void;
   abstract onAdStart(callback: (currentTime: number) => void): () => void;
   abstract onAdEnd(callback: (resumeTime: number) => void): () => void;
   abstract onRateChange(callback: (rate: number) => void): () => void;
@@ -123,12 +127,13 @@ export class AdapterRegistry {
 
   static detect(): Platform | null {
     const hostname = window.location.hostname;
-    if (hostname.includes('youtube.com')) return 'youtube';
-    if (hostname.includes('netflix.com')) return 'netflix';
-    if (hostname.includes('primevideo.com') || hostname.includes('amazon.com')) return 'prime';
-    if (hostname.includes('disneyplus.com')) return 'disney';
-    if (hostname.includes('twitch.tv')) return 'twitch';
-    if (hostname.includes('vimeo.com')) return 'vimeo';
+    if (hostname.includes("youtube.com")) return "youtube";
+    if (hostname.includes("netflix.com")) return "netflix";
+    if (hostname.includes("primevideo.com") || hostname.includes("amazon.com"))
+      return "prime";
+    if (hostname.includes("disneyplus.com")) return "disney";
+    if (hostname.includes("twitch.tv")) return "twitch";
+    if (hostname.includes("vimeo.com")) return "vimeo";
     return null;
   }
 }

@@ -13,10 +13,15 @@
  * apply() calls to prevent feedback loops.
  */
 
-import type { PlatformAdapter } from '@binge-room/platform-sdk';
-import type { SyncUpdatePayload, Room, User, VideoState } from '../../types/index.js';
-import { computeExpectedTime, isDriftExceeded } from '@binge-room/shared-utils';
-import { DRIFT_THRESHOLD_MS, SYNC_INTERVAL_MS } from '@binge-room/event-schema';
+import type { PlatformAdapter } from "@binge-room/platform-sdk";
+import type {
+  SyncUpdatePayload,
+  Room,
+  User,
+  VideoState,
+} from "../../types/index.js";
+import { computeExpectedTime, isDriftExceeded } from "@binge-room/shared-utils";
+import { DRIFT_THRESHOLD_MS, SYNC_INTERVAL_MS } from "@binge-room/event-schema";
 
 // How long to hold the "applying" lock after sending a remote command to the
 // adapter.  Must be long enough to cover async buffering / 'seeked' events
@@ -54,7 +59,7 @@ export class SyncEngine {
     this.onDenied = onDenied;
     this.attachVideoListeners();
     this.startDriftCorrection();
-    console.log('[Binge-Room Engine] Started for room', room.id);
+    console.log("[Binge-Room Engine] Started for room", room.id);
   }
 
   stop(): void {
@@ -71,7 +76,7 @@ export class SyncEngine {
     this.applying = false;
     this.room = null;
     this.currentUser = null;
-    console.log('[Binge-Room Engine] Stopped');
+    console.log("[Binge-Room Engine] Stopped");
   }
 
   updateRoom(room: Room): void {
@@ -89,9 +94,9 @@ export class SyncEngine {
     const isPlaying = this.adapter.isPlaying();
     const currentTime = this.adapter.getCurrentTime();
     if (isPlaying) {
-      this.emitVideoEvent('PLAY', { currentTime });
+      this.emitVideoEvent("PLAY", { currentTime });
     } else {
-      this.emitVideoEvent('PAUSE', { currentTime });
+      this.emitVideoEvent("PAUSE", { currentTime });
     }
   }
 
@@ -127,51 +132,66 @@ export class SyncEngine {
   private attachVideoListeners(): void {
     const off1 = this.adapter.onPlay((time) => {
       if (this.applying || this.localAdActive) return;
-      if (!this.isUserAllowed()) { this.revertToRoomState(); return; }
+      if (!this.isUserAllowed()) {
+        this.revertToRoomState();
+        return;
+      }
       // Optimistically update local state so drift correction doesn't fight this
       this.updateLocalVideoState({ isPlaying: true, currentTime: time });
-      this.emitVideoEvent('PLAY', { currentTime: time });
+      this.emitVideoEvent("PLAY", { currentTime: time });
     });
 
     const off2 = this.adapter.onPause((time) => {
       if (this.applying || this.localAdActive) return;
-      if (!this.isUserAllowed()) { this.revertToRoomState(); return; }
+      if (!this.isUserAllowed()) {
+        this.revertToRoomState();
+        return;
+      }
       this.updateLocalVideoState({ isPlaying: false, currentTime: time });
-      this.emitVideoEvent('PAUSE', { currentTime: time });
+      this.emitVideoEvent("PAUSE", { currentTime: time });
     });
 
     const off3 = this.adapter.onSeeked((time) => {
       if (this.applying) return;
-      if (!this.isUserAllowed()) { this.revertToRoomState(); return; }
+      if (!this.isUserAllowed()) {
+        this.revertToRoomState();
+        return;
+      }
       // Update local state immediately so drift correction uses the new position
       this.updateLocalVideoState({ currentTime: time });
-      this.emitVideoEvent('SEEK', { currentTime: time });
+      this.emitVideoEvent("SEEK", { currentTime: time });
     });
 
     const off4 = this.adapter.onVideoChange((videoId, videoUrl) => {
       if (this.applying) return;
       if (!this.isUserAllowed()) return; // silently ignore video changes from non-hosts
-      this.emitVideoEvent('VIDEO_CHANGE', { videoId, videoUrl });
+      this.emitVideoEvent("VIDEO_CHANGE", { videoId, videoUrl });
     });
 
     const off5 = this.adapter.onAdStart((currentTime) => {
       this.localAdActive = true;
-      this.emitVideoEvent('AD_START', { currentTime });
+      this.emitVideoEvent("AD_START", { currentTime });
     });
 
     const off6 = this.adapter.onAdEnd((resumeTime) => {
       this.localAdActive = false;
-      this.emitVideoEvent('AD_END', { resumeTime });
+      this.emitVideoEvent("AD_END", { resumeTime });
     });
 
     const off7 = this.adapter.onRateChange((rate) => {
       if (this.applying || this.localAdActive) return;
-      if (!this.isUserAllowed()) { this.revertToRoomState(); return; }
+      if (!this.isUserAllowed()) {
+        this.revertToRoomState();
+        return;
+      }
       // Capture currentTime at the moment of the rate change so other clients
       // seek to the same position before applying the new rate.
       const currentTime = this.adapter.getCurrentTime();
       this.updateLocalVideoState({ playbackRate: rate, currentTime });
-      this.emitVideoEvent('PLAYBACK_RATE_CHANGE', { playbackRate: rate, currentTime });
+      this.emitVideoEvent("PLAYBACK_RATE_CHANGE", {
+        playbackRate: rate,
+        currentTime,
+      });
     });
 
     this.cleanupFns.push(off1, off2, off3, off4, off5, off6, off7);
@@ -185,11 +205,18 @@ export class SyncEngine {
     if (!this.room) return;
     this.room = {
       ...this.room,
-      videoState: { ...this.room.videoState, ...patch, lastUpdated: Date.now() },
+      videoState: {
+        ...this.room.videoState,
+        ...patch,
+        lastUpdated: Date.now(),
+      },
     };
   }
 
-  private emitVideoEvent(action: string, extra: Record<string, unknown> = {}): void {
+  private emitVideoEvent(
+    action: string,
+    extra: Record<string, unknown> = {},
+  ): void {
     if (!this.room || !this.currentUser || this.contextInvalid) return;
     // chrome.runtime becomes undefined when the extension is reloaded
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,7 +226,10 @@ export class SyncEngine {
       return;
     }
     try {
-      chrome.runtime.sendMessage({ type: 'VIDEO_EVENT', payload: { action, ...extra } });
+      chrome.runtime.sendMessage({
+        type: "VIDEO_EVENT",
+        payload: { action, ...extra },
+      });
     } catch {
       // Any error here means the extension context is gone
       this.contextInvalid = true;
@@ -209,7 +239,10 @@ export class SyncEngine {
 
   // ─── Inbound: apply remote sync commands ──────────────────────────────────
 
-  applySync(payload: SyncUpdatePayload & { action?: string }, serverTime: number): void {
+  applySync(
+    payload: SyncUpdatePayload & { action?: string },
+    serverTime: number,
+  ): void {
     if (!this.room || !this.currentUser) return;
 
     const { videoState, action } = payload;
@@ -222,29 +255,29 @@ export class SyncEngine {
 
     this.setApplying();
 
-    switch (action ?? 'ROOM_STATE') {
-      case 'PLAY':
+    switch (action ?? "ROOM_STATE") {
+      case "PLAY":
         this.applyPlay(videoState, serverTime);
         break;
-      case 'PAUSE':
+      case "PAUSE":
         this.applyPause(videoState);
         break;
-      case 'SEEK':
+      case "SEEK":
         this.applySeek(videoState.currentTime);
         break;
-      case 'VIDEO_CHANGE':
+      case "VIDEO_CHANGE":
         this.applyVideoChange(videoState);
         break;
-      case 'AD_START':
+      case "AD_START":
         this.applyAdStart();
         break;
-      case 'AD_END':
+      case "AD_END":
         this.applyAdEnd(videoState);
         break;
-      case 'PLAYBACK_RATE_CHANGE':
+      case "PLAYBACK_RATE_CHANGE":
         this.applyRateChange(videoState);
         break;
-      case 'ROOM_STATE':
+      case "ROOM_STATE":
         // New joiner catch-up
         this.applyRoomState(videoState, serverTime);
         break;
@@ -347,7 +380,14 @@ export class SyncEngine {
 
   private startDriftCorrection(): void {
     this.driftIntervalId = setInterval(() => {
-      if (!this.room || !this.currentUser || this.applying || this.localAdActive || this.contextInvalid) return;
+      if (
+        !this.room ||
+        !this.currentUser ||
+        this.applying ||
+        this.localAdActive ||
+        this.contextInvalid
+      )
+        return;
 
       const videoState = this.room.videoState;
       if (!videoState.isPlaying) return;
@@ -356,7 +396,9 @@ export class SyncEngine {
       const actual = this.adapter.getCurrentTime();
 
       if (isDriftExceeded(actual, expected, DRIFT_THRESHOLD_MS)) {
-        console.log(`[Binge-Room Engine] Drift ${((actual - expected) * 1000).toFixed(0)}ms — correcting`);
+        console.log(
+          `[Binge-Room Engine] Drift ${((actual - expected) * 1000).toFixed(0)}ms — correcting`,
+        );
         this.setApplying();
         this.adapter.seek(expected);
       }

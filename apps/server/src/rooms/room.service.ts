@@ -1,13 +1,26 @@
-import type { Room, User, VideoState, CreateRoomPayload, JoinRoomPayload } from '@binge-room/shared-types';
-import { generateRoomId, generateRoomCode, sanitizeUsername } from '@binge-room/shared-utils';
-import { MAX_ROOM_USERS } from '@binge-room/event-schema';
-import { redisAdapter } from '../adapters/redis.adapter.js';
-import { logger } from '../utils/logger.js';
+import type {
+  Room,
+  User,
+  VideoState,
+  CreateRoomPayload,
+  JoinRoomPayload,
+} from "@binge-room/shared-types";
+import {
+  generateRoomId,
+  generateRoomCode,
+  sanitizeUsername,
+} from "@binge-room/shared-utils";
+import { MAX_ROOM_USERS } from "@binge-room/event-schema";
+import { redisAdapter } from "../adapters/redis.adapter.js";
+import { logger } from "../utils/logger.js";
 
 export class RoomService {
   // ─── Create Room ────────────────────────────────────────────────────────────
 
-  async createRoom(socketId: string, payload: CreateRoomPayload): Promise<{ room: Room; user: User }> {
+  async createRoom(
+    socketId: string,
+    payload: CreateRoomPayload,
+  ): Promise<{ room: Room; user: User }> {
     const userId = socketId;
     const userName = sanitizeUsername(payload.userName);
 
@@ -20,8 +33,8 @@ export class RoomService {
     };
 
     const videoState: VideoState = {
-      videoId: payload.videoId ?? '',
-      videoUrl: payload.videoUrl ?? '',
+      videoId: payload.videoId ?? "",
+      videoUrl: payload.videoUrl ?? "",
       currentTime: 0,
       isPlaying: false,
       isAdPlaying: false,
@@ -39,11 +52,15 @@ export class RoomService {
       platform: payload.platform,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      controlsLocked: true,  // default: only host can control playback
+      controlsLocked: true, // default: only host can control playback
     };
 
     await redisAdapter.saveRoom(room);
-    logger.info('Room created', { roomId: room.id, code: room.code, host: userName });
+    logger.info("Room created", {
+      roomId: room.id,
+      code: room.code,
+      host: userName,
+    });
 
     return { room, user };
   }
@@ -62,8 +79,8 @@ export class RoomService {
       room = await redisAdapter.getRoom(payload.roomId);
     }
 
-    if (!room) return { error: 'ROOM_NOT_FOUND' };
-    if (room.users.length >= MAX_ROOM_USERS) return { error: 'ROOM_FULL' };
+    if (!room) return { error: "ROOM_NOT_FOUND" };
+    if (room.users.length >= MAX_ROOM_USERS) return { error: "ROOM_FULL" };
 
     // Prevent duplicate join
     const existing = room.users.find((u) => u.id === socketId);
@@ -81,7 +98,11 @@ export class RoomService {
     room.updatedAt = Date.now();
     await redisAdapter.saveRoom(room);
 
-    logger.info('User joined room', { roomId: room.id, userId: socketId, userName: user.name });
+    logger.info("User joined room", {
+      roomId: room.id,
+      userId: socketId,
+      userName: user.name,
+    });
     return { room, user };
   }
 
@@ -90,7 +111,11 @@ export class RoomService {
   async leaveRoom(
     socketId: string,
     roomId: string,
-  ): Promise<{ room: Room | null; wasHost: boolean; newHostId: string | null }> {
+  ): Promise<{
+    room: Room | null;
+    wasHost: boolean;
+    newHostId: string | null;
+  }> {
     const room = await redisAdapter.getRoom(roomId);
     if (!room) return { room: null, wasHost: false, newHostId: null };
 
@@ -99,7 +124,7 @@ export class RoomService {
 
     if (room.users.length === 0) {
       await redisAdapter.deleteRoom(roomId);
-      logger.info('Room deleted (empty)', { roomId });
+      logger.info("Room deleted (empty)", { roomId });
       return { room: null, wasHost, newHostId: null };
     }
 
@@ -108,7 +133,7 @@ export class RoomService {
       newHostId = room.users[0].id;
       room.hostId = newHostId;
       room.users[0].isHost = true;
-      logger.info('Host transferred', { roomId, newHostId });
+      logger.info("Host transferred", { roomId, newHostId });
     }
 
     room.updatedAt = Date.now();
@@ -119,7 +144,10 @@ export class RoomService {
 
   // ─── Update Video State ─────────────────────────────────────────────────────
 
-  async updateVideoState(roomId: string, update: Partial<VideoState>): Promise<Room | null> {
+  async updateVideoState(
+    roomId: string,
+    update: Partial<VideoState>,
+  ): Promise<Room | null> {
     const room = await redisAdapter.getRoom(roomId);
     if (!room) return null;
 
@@ -141,7 +169,11 @@ export class RoomService {
 
   // ─── Toggle Controls Lock ───────────────────────────────────────────────────
 
-  async toggleControls(roomId: string, hostId: string, locked: boolean): Promise<Room | null> {
+  async toggleControls(
+    roomId: string,
+    hostId: string,
+    locked: boolean,
+  ): Promise<Room | null> {
     const room = await redisAdapter.getRoom(roomId);
     if (!room) return null;
     if (room.hostId !== hostId) return null; // only host can change this
@@ -149,7 +181,7 @@ export class RoomService {
     room.controlsLocked = locked;
     room.updatedAt = Date.now();
     await redisAdapter.saveRoom(room);
-    logger.info('Controls toggled', { roomId, locked });
+    logger.info("Controls toggled", { roomId, locked });
     return room;
   }
 

@@ -2,9 +2,9 @@
 
 Place the following PNG icon files here before building:
 
-- icon16.png  (16×16)
-- icon32.png  (32×32)
-- icon48.png  (48×48)
+- icon16.png (16×16)
+- icon32.png (32×32)
+- icon48.png (48×48)
 - icon128.png (128×128)
 
 You can generate them from the SVG source in `docs/assets/icon.svg`

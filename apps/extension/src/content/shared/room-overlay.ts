@@ -5,7 +5,7 @@
  * Rendered inside a shadow DOM so it never conflicts with YouTube's CSS.
  */
 
-import type { Room } from '../../types/index.js';
+import type { Room } from "../../types/index.js";
 
 const CSS = `
   :host {
@@ -89,13 +89,13 @@ export class RoomOverlay {
     this.init();
     if (!this.shadow) return;
 
-    const overlayEl = this.shadow.querySelector('.overlay');
-    const dotEl = this.shadow.querySelector('.dot');
-    const codeEl = this.shadow.querySelector('.code');
-    const usersEl = this.shadow.querySelector('.users');
+    const overlayEl = this.shadow.querySelector(".overlay");
+    const dotEl = this.shadow.querySelector(".dot");
+    const codeEl = this.shadow.querySelector(".code");
+    const usersEl = this.shadow.querySelector(".users");
 
-    if (overlayEl) overlayEl.classList.toggle('hidden', !connected);
-    if (dotEl) dotEl.classList.toggle('disconnected', !connected);
+    if (overlayEl) overlayEl.classList.toggle("hidden", !connected);
+    if (dotEl) dotEl.classList.toggle("disconnected", !connected);
     if (codeEl) codeEl.textContent = room.code;
     if (usersEl) usersEl.textContent = `${room.users.length} watching`;
   }
@@ -109,15 +109,15 @@ export class RoomOverlay {
   private init(): void {
     if (this.host) return;
 
-    this.host = document.createElement('div');
-    this.host.id = 'binge-room-overlay';
-    this.shadow = this.host.attachShadow({ mode: 'closed' });
+    this.host = document.createElement("div");
+    this.host.id = "binge-room-overlay";
+    this.shadow = this.host.attachShadow({ mode: "closed" });
 
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = CSS;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'overlay';
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
     overlay.innerHTML = `
       <div class="dot"></div>
       <div class="info">

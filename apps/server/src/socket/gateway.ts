@@ -1,6 +1,6 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import type { Server as HttpServer } from 'http';
-import { z } from 'zod';
+import { Server as SocketIOServer, Socket } from "socket.io";
+import type { Server as HttpServer } from "http";
+import { z } from "zod";
 import type {
   CreateRoomPayload,
   JoinRoomPayload,
@@ -10,32 +10,46 @@ import type {
   VideoChangePayload,
   AdStartPayload,
   AdEndPayload,
-} from '@binge-room/shared-types';
+} from "@binge-room/shared-types";
 import {
   CLIENT_EVENTS,
   SERVER_EVENTS,
   ROOM_CODE_REGEX,
   USERNAME_MAX_LENGTH,
-} from '@binge-room/event-schema';
-import { roomService } from '../rooms/room.service.js';
-import { SocketRateLimiter } from '../middleware/rate-limiter.js';
-import { config } from '../config/index.js';
-import { logger } from '../utils/logger.js';
+} from "@binge-room/event-schema";
+import { roomService } from "../rooms/room.service.js";
+import { SocketRateLimiter } from "../middleware/rate-limiter.js";
+import { config } from "../config/index.js";
+import { logger } from "../utils/logger.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
 const createRoomSchema = z.object({
   userName: z.string().min(1).max(USERNAME_MAX_LENGTH),
-  platform: z.enum(['youtube', 'netflix', 'prime', 'disney', 'twitch', 'vimeo']),
+  platform: z.enum([
+    "youtube",
+    "netflix",
+    "prime",
+    "disney",
+    "twitch",
+    "vimeo",
+  ]),
   videoId: z.string().optional(),
-  videoUrl: z.string().url().optional().or(z.literal('')),
+  videoUrl: z.string().url().optional().or(z.literal("")),
 });
 
 const joinRoomSchema = z.object({
   roomId: z.string().optional(),
   code: z.string().regex(ROOM_CODE_REGEX).optional(),
   userName: z.string().min(1).max(USERNAME_MAX_LENGTH),
-  platform: z.enum(['youtube', 'netflix', 'prime', 'disney', 'twitch', 'vimeo']),
+  platform: z.enum([
+    "youtube",
+    "netflix",
+    "prime",
+    "disney",
+    "twitch",
+    "vimeo",
+  ]),
 });
 
 const syncEventSchema = z.object({
@@ -43,7 +57,14 @@ const syncEventSchema = z.object({
   userId: z.string().min(1),
   userName: z.string().min(1).max(USERNAME_MAX_LENGTH),
   timestamp: z.number(),
-  platform: z.enum(['youtube', 'netflix', 'prime', 'disney', 'twitch', 'vimeo']),
+  platform: z.enum([
+    "youtube",
+    "netflix",
+    "prime",
+    "disney",
+    "twitch",
+    "vimeo",
+  ]),
   currentTime: z.number().min(0).optional(),
   videoId: z.string().optional(),
   videoUrl: z.string().optional(),
@@ -57,10 +78,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: config.clientOrigin,
-      methods: ['GET', 'POST'],
+      methods: ["GET", "POST"],
       credentials: false,
     },
-    transports: ['websocket', 'polling'],
+    transports: ["websocket", "polling"],
     pingInterval: 25_000,
     pingTimeout: 10_000,
   });
@@ -71,8 +92,8 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
 
   // ─── Connection ─────────────────────────────────────────────────────────
 
-  io.on('connection', (socket: Socket) => {
-    logger.debug('Socket connected', { socketId: socket.id });
+  io.on("connection", (socket: Socket) => {
+    logger.debug("Socket connected", { socketId: socket.id });
 
     // ─── CREATE ROOM ──────────────────────────────────────────────────────
 
@@ -90,10 +111,16 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
         });
 
-        logger.info('Room created via socket', { roomId: room.id, code: room.code });
+        logger.info("Room created via socket", {
+          roomId: room.id,
+          code: room.code,
+        });
       } catch (err) {
-        logger.error('CREATE_ROOM error', { err });
-        socket.emit(SERVER_EVENTS.ERROR, { code: 'INVALID_PAYLOAD', message: 'Invalid create room data' });
+        logger.error("CREATE_ROOM error", { err });
+        socket.emit(SERVER_EVENTS.ERROR, {
+          code: "INVALID_PAYLOAD",
+          message: "Invalid create room data",
+        });
       }
     });
 
@@ -104,8 +131,11 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
         const payload = joinRoomSchema.parse(data) as JoinRoomPayload;
         const result = await roomService.joinRoom(socket.id, payload);
 
-        if ('error' in result) {
-          socket.emit(SERVER_EVENTS.ERROR, { code: result.error, message: result.error });
+        if ("error" in result) {
+          socket.emit(SERVER_EVENTS.ERROR, {
+            code: result.error,
+            message: result.error,
+          });
           return;
         }
 
@@ -136,10 +166,17 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
         });
 
-        logger.info('User joined room', { roomId: room.id, userId: socket.id, userName: user.name });
+        logger.info("User joined room", {
+          roomId: room.id,
+          userId: socket.id,
+          userName: user.name,
+        });
       } catch (err) {
-        logger.error('JOIN_ROOM error', { err });
-        socket.emit(SERVER_EVENTS.ERROR, { code: 'INVALID_PAYLOAD', message: 'Invalid join room data' });
+        logger.error("JOIN_ROOM error", { err });
+        socket.emit(SERVER_EVENTS.ERROR, {
+          code: "INVALID_PAYLOAD",
+          message: "Invalid join room data",
+        });
       }
     });
 
@@ -168,10 +205,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'PLAY',
+          action: "PLAY",
         });
       } catch (err) {
-        logger.error('PLAY error', { err });
+        logger.error("PLAY error", { err });
       }
     });
 
@@ -193,10 +230,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'PAUSE',
+          action: "PAUSE",
         });
       } catch (err) {
-        logger.error('PAUSE error', { err });
+        logger.error("PAUSE error", { err });
       }
     });
 
@@ -217,10 +254,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'SEEK',
+          action: "SEEK",
         });
       } catch (err) {
-        logger.error('SEEK error', { err });
+        logger.error("SEEK error", { err });
       }
     });
 
@@ -244,10 +281,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'VIDEO_CHANGE',
+          action: "VIDEO_CHANGE",
         });
       } catch (err) {
-        logger.error('VIDEO_CHANGE error', { err });
+        logger.error("VIDEO_CHANGE error", { err });
       }
     });
 
@@ -269,10 +306,10 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'AD_START',
+          action: "AD_START",
         });
       } catch (err) {
-        logger.error('AD_START error', { err });
+        logger.error("AD_START error", { err });
       }
     });
 
@@ -294,17 +331,18 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'AD_END',
+          action: "AD_END",
         });
       } catch (err) {
-        logger.error('AD_END error', { err });
+        logger.error("AD_END error", { err });
       }
     });
 
     // ─── PLAYBACK RATE CHANGE ─────────────────────────────────────────────
 
     socket.on(CLIENT_EVENTS.PLAYBACK_RATE_CHANGE, async (data: unknown) => {
-      if (!rateLimiter.isAllowed(socket.id, CLIENT_EVENTS.PLAYBACK_RATE_CHANGE)) return;
+      if (!rateLimiter.isAllowed(socket.id, CLIENT_EVENTS.PLAYBACK_RATE_CHANGE))
+        return;
       try {
         const payload = syncEventSchema.parse(data);
         const rate = payload.playbackRate ?? 1;
@@ -320,11 +358,11 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
           serverTime: Date.now(),
           triggeredBy: socket.id,
           triggeredByName: payload.userName,
-          action: 'PLAYBACK_RATE_CHANGE',
+          action: "PLAYBACK_RATE_CHANGE",
         });
-        logger.info('Playback rate changed', { roomId: payload.roomId, rate });
+        logger.info("Playback rate changed", { roomId: payload.roomId, rate });
       } catch (err) {
-        logger.error('PLAYBACK_RATE_CHANGE error', { err });
+        logger.error("PLAYBACK_RATE_CHANGE error", { err });
       }
     });
 
@@ -333,13 +371,21 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
     socket.on(CLIENT_EVENTS.LOCK_CONTROLS, async (data: unknown) => {
       try {
         const { roomId, locked } = data as { roomId: string; locked: boolean };
-        const room = await roomService.toggleControls(roomId, socket.id, locked);
+        const room = await roomService.toggleControls(
+          roomId,
+          socket.id,
+          locked,
+        );
         if (!room) return;
 
-        io.to(roomId).emit(SERVER_EVENTS.CONTROLS_CHANGED, { roomId, locked, room });
-        logger.info('Controls changed', { roomId, locked, by: socket.id });
+        io.to(roomId).emit(SERVER_EVENTS.CONTROLS_CHANGED, {
+          roomId,
+          locked,
+          room,
+        });
+        logger.info("Controls changed", { roomId, locked, by: socket.id });
       } catch (err) {
-        logger.error('LOCK_CONTROLS error', { err });
+        logger.error("LOCK_CONTROLS error", { err });
       }
     });
 
@@ -352,7 +398,7 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
         if (!room) return;
         socket.emit(SERVER_EVENTS.ROOM_STATE, { room, serverTime: Date.now() });
       } catch (err) {
-        logger.error('SYNC_STATE error', { err });
+        logger.error("SYNC_STATE error", { err });
       }
     });
 
@@ -367,8 +413,8 @@ export function createSocketGateway(httpServer: HttpServer): SocketIOServer {
 
     // ─── DISCONNECT ───────────────────────────────────────────────────────
 
-    socket.on('disconnect', async (reason) => {
-      logger.debug('Socket disconnected', { socketId: socket.id, reason });
+    socket.on("disconnect", async (reason) => {
+      logger.debug("Socket disconnected", { socketId: socket.id, reason });
       await handleLeave(socket, socketRoomMap, io, rateLimiter);
     });
   });
@@ -390,15 +436,20 @@ async function handleLeave(
   socketRoomMap.delete(socket.id);
   rateLimiter.cleanup(socket.id);
 
-  const leavingUser = (await roomService.getRoom(roomId))?.users.find((u) => u.id === socket.id);
-  const { room, wasHost, newHostId } = await roomService.leaveRoom(socket.id, roomId);
+  const leavingUser = (await roomService.getRoom(roomId))?.users.find(
+    (u) => u.id === socket.id,
+  );
+  const { room, wasHost, newHostId } = await roomService.leaveRoom(
+    socket.id,
+    roomId,
+  );
 
   await socket.leave(roomId);
 
   if (room) {
     io.to(roomId).emit(SERVER_EVENTS.USER_LEFT, {
       userId: socket.id,
-      userName: leavingUser?.name ?? 'Unknown',
+      userName: leavingUser?.name ?? "Unknown",
       newHostId,
       room,
     });
@@ -406,11 +457,12 @@ async function handleLeave(
     if (wasHost && newHostId) {
       io.to(roomId).emit(SERVER_EVENTS.HOST_CHANGED, {
         newHostId,
-        newHostName: room.users.find((u) => u.id === newHostId)?.name ?? 'Unknown',
+        newHostName:
+          room.users.find((u) => u.id === newHostId)?.name ?? "Unknown",
         room,
       });
     }
   }
 
-  logger.info('User left room', { roomId, userId: socket.id, wasHost });
+  logger.info("User left room", { roomId, userId: socket.id, wasHost });
 }

@@ -6,14 +6,14 @@
 
 ```ts
 // apps/extension/src/content/netflix/netflix-adapter.ts
-import { BaseAdapter } from '@binge-room/platform-sdk';
-import type { VideoState } from '@binge-room/shared-types';
+import { BaseAdapter } from "@binge-room/platform-sdk";
+import type { VideoState } from "@binge-room/shared-types";
 
 export class NetflixAdapter extends BaseAdapter {
-  readonly platform = 'netflix' as const;
+  readonly platform = "netflix" as const;
 
   isActive(): boolean {
-    return window.location.hostname.includes('netflix.com');
+    return window.location.hostname.includes("netflix.com");
   }
 
   getVideoId(): string | null {
@@ -27,37 +27,37 @@ export class NetflixAdapter extends BaseAdapter {
   }
 
   getCurrentTime(): number {
-    const video = document.querySelector('video');
+    const video = document.querySelector("video");
     return video?.currentTime ?? 0;
   }
 
   isPlaying(): boolean {
-    const video = document.querySelector('video');
+    const video = document.querySelector("video");
     return video ? !video.paused : false;
   }
 
   isAdPlaying(): boolean {
     // Netflix doesn't have ads in the traditional sense,
     // but check for pre-roll / recap skippers
-    return !!document.querySelector('.watch-video--skip-content');
+    return !!document.querySelector(".watch-video--skip-content");
   }
 
   play(): void {
-    (document.querySelector('video') as HTMLVideoElement)?.play();
+    (document.querySelector("video") as HTMLVideoElement)?.play();
   }
 
   pause(): void {
-    (document.querySelector('video') as HTMLVideoElement)?.pause();
+    (document.querySelector("video") as HTMLVideoElement)?.pause();
   }
 
   seek(time: number): void {
-    const video = document.querySelector('video') as HTMLVideoElement;
+    const video = document.querySelector("video") as HTMLVideoElement;
     if (video) video.currentTime = time;
   }
 
   getVideoState(): Partial<VideoState> {
     return {
-      videoId: this.getVideoId() ?? '',
+      videoId: this.getVideoId() ?? "",
       videoUrl: this.getVideoUrl(),
       currentTime: this.getCurrentTime(),
       isPlaying: this.isPlaying(),
@@ -67,11 +67,11 @@ export class NetflixAdapter extends BaseAdapter {
   }
 
   onPlay(callback: (time: number) => void) {
-    const video = document.querySelector('video');
+    const video = document.querySelector("video");
     if (!video) return () => {};
     const handler = () => callback(this.getCurrentTime());
-    this.addDomListener(video, 'play', handler);
-    return () => video.removeEventListener('play', handler);
+    this.addDomListener(video, "play", handler);
+    return () => video.removeEventListener("play", handler);
   }
 
   // ... implement onPause, onSeeked, onVideoChange, onAdStart, onAdEnd
@@ -82,10 +82,10 @@ export class NetflixAdapter extends BaseAdapter {
 
 ```ts
 // apps/extension/src/content/index.ts
-import { AdapterRegistry } from '@binge-room/platform-sdk';
-import { NetflixAdapter } from './netflix/netflix-adapter.js';
+import { AdapterRegistry } from "@binge-room/platform-sdk";
+import { NetflixAdapter } from "./netflix/netflix-adapter.js";
 
-AdapterRegistry.register('netflix', () => new NetflixAdapter());
+AdapterRegistry.register("netflix", () => new NetflixAdapter());
 ```
 
 ### 3. Add to manifest.json
@@ -94,21 +94,18 @@ AdapterRegistry.register('netflix', () => new NetflixAdapter());
 {
   "content_scripts": [
     {
-      "matches": [
-        "https://www.netflix.com/*"
-      ],
+      "matches": ["https://www.netflix.com/*"],
       "js": ["content.js"]
     }
   ],
-  "host_permissions": [
-    "https://www.netflix.com/*"
-  ]
+  "host_permissions": ["https://www.netflix.com/*"]
 }
 ```
 
 ### 4. Add to Platform type
 
 In `packages/shared-types/src/index.ts`:
+
 ```ts
 export type Platform = 'youtube' | 'netflix' | ...;
 ```

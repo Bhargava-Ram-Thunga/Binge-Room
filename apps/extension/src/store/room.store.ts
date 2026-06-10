@@ -3,8 +3,8 @@
  * The background service worker holds the canonical state;
  * this store is a local replica for rendering.
  */
-import { create } from 'zustand';
-import type { Room, User, ConnectionStatus } from '../types/index.js';
+import { create } from "zustand";
+import type { Room, User, ConnectionStatus } from "../types/index.js";
 
 interface RoomStore {
   // Connection

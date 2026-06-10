@@ -22,7 +22,7 @@ export type {
   VideoChangePayload,
   AdStartPayload,
   AdEndPayload,
-} from '@binge-room/shared-types';
+} from "@binge-room/shared-types";
 
 // Extension-internal message types (background ↔ content ↔ popup)
 export interface BgMessage<T = unknown> {
