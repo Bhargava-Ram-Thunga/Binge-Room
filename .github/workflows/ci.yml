@@ -30,8 +30,17 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Update Board to Running
+        if: always()
+        run: node scripts/update-build-status.mjs running
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit Dependencies for Vulnerabilities
+        run: pnpm audit --audit-level=high
 
       - name: Build Monorepo
         run: pnpm build
@@ -41,3 +50,15 @@ jobs:
 
       - name: Run Tests
         run: pnpm test
+
+      - name: Update Board to Passed
+        if: success()
+        run: node scripts/update-build-status.mjs success
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Update Board to Failed
+        if: failure()
+        run: node scripts/update-build-status.mjs failure
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
