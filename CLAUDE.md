@@ -4,6 +4,22 @@ This document outlines how to effectively leverage **Claude Code** and its insta
 
 ---
 
+## 🧠 Prompt Execution & Workflow Pipeline
+
+When executing any task, you must adhere to the following sequence:
+
+1. **Always Read Reference Files First:** Regardless of user prompts, **always** read both `CLAUDE.md` and `AGENTS.md` at the start of work to align on system rules, architecture, and coding guidelines.
+2. **Skill Assessment:** Determine which specific global/project skills (e.g. `vibe-code-auditor`, `typescript-pro`) are needed for the task and follow their instructions.
+3. **Decompose the Task:** Break down the request into smaller, manageable sub-tasks.
+4. **Git Branching Strategy:**
+   - Create a clean new branch from `dev` (e.g., `feat/jiohotstar` or `fix/firefox-sw`).
+   - Implement the changes and verify them locally (running `pnpm build`, `pnpm lint`, and unit tests).
+   - Once local verification succeeds, commit and push to the `dev` branch.
+   - Run integration tests on `dev`.
+   - **Only** push/merge to the `prod` branch when dev is fully verified and confirmed stable.
+
+---
+
 ## 🛠 Active System Environment
 
 - **Runtime:** Node.js (v20+)
