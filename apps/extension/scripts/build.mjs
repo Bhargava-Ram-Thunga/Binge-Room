@@ -28,12 +28,12 @@ const workspaceAlias = {
   name: 'workspace-alias',
   setup(build) {
     const map = {
-      '@syncstream/shared-types': resolve(pkgs, 'shared-types/src/index.ts'),
-      '@syncstream/shared-utils': resolve(pkgs, 'shared-utils/src/index.ts'),
-      '@syncstream/event-schema': resolve(pkgs, 'event-schema/src/index.ts'),
-      '@syncstream/platform-sdk': resolve(pkgs, 'platform-sdk/src/index.ts'),
+      '@binge-room/shared-types': resolve(pkgs, 'shared-types/src/index.ts'),
+      '@binge-room/shared-utils': resolve(pkgs, 'shared-utils/src/index.ts'),
+      '@binge-room/event-schema': resolve(pkgs, 'event-schema/src/index.ts'),
+      '@binge-room/platform-sdk': resolve(pkgs, 'platform-sdk/src/index.ts'),
     };
-    build.onResolve({ filter: /^@syncstream\// }, (args) => {
+    build.onResolve({ filter: /^@binge-room\// }, (args) => {
       const p = map[args.path];
       return p ? { path: p } : null;
     });
@@ -121,7 +121,7 @@ function generateIcons() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('\n🔨  SyncStream extension build\n');
+  console.log('\n🔨  Binge-Room extension build\n');
   mkdirSync(distDir, { recursive: true });
 
   // Steps 1-4 can run in parallel

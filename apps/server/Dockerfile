@@ -17,10 +17,10 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm --filter @syncstream/shared-types build
-RUN pnpm --filter @syncstream/shared-utils build
-RUN pnpm --filter @syncstream/event-schema build
-RUN pnpm --filter @syncstream/server build
+RUN pnpm --filter @binge-room/shared-types build
+RUN pnpm --filter @binge-room/shared-utils build
+RUN pnpm --filter @binge-room/event-schema build
+RUN pnpm --filter @binge-room/server build
 
 # ─── Production ───────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner

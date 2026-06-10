@@ -1,5 +1,5 @@
 {
-  "name": "@syncstream/extension",
+  "name": "@binge-room/extension",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@syncstream/shared-types": "workspace:*",
-    "@syncstream/shared-utils": "workspace:*",
-    "@syncstream/event-schema": "workspace:*",
+    "@binge-room/shared-types": "workspace:*",
+    "@binge-room/shared-utils": "workspace:*",
+    "@binge-room/event-schema": "workspace:*",
     "socket.io-client": "^4.7.5",
     "zustand": "^4.5.4",
     "react": "^18.3.1",

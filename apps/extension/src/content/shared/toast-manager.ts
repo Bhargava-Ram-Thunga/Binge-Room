@@ -7,7 +7,7 @@
  */
 
 import type { ToastNotification, ToastType } from '../../types/index.js';
-import { nanoid } from '@syncstream/shared-utils';
+import { nanoid } from '@binge-room/shared-utils';
 
 const TOAST_DURATION_MS = 4000;
 const MAX_TOASTS = 5;
@@ -136,7 +136,7 @@ export class ToastManager {
     if (this.host) return;
 
     this.host = document.createElement('div');
-    this.host.id = 'syncstream-toasts';
+    this.host.id = 'binge-room-toasts';
     this.shadow = this.host.attachShadow({ mode: 'closed' });
 
     const style = document.createElement('style');

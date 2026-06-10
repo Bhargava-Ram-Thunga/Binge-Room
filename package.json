@@ -1,13 +1,13 @@
 {
-  "name": "syncstream",
+  "name": "binge-room",
   "version": "1.0.0",
   "private": true,
   "description": "Scalable real-time watch party platform",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "build:server": "turbo run build --filter=@syncstream/server",
-    "build:extension": "turbo run build --filter=@syncstream/extension",
+    "build:server": "turbo run build --filter=@binge-room/server",
+    "build:extension": "turbo run build --filter=@binge-room/extension",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "clean": "turbo run clean && rm -rf node_modules",

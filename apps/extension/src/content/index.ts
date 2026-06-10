@@ -1,5 +1,5 @@
 /**
- * SyncStream Content Script — injected into YouTube pages
+ * Binge-Room Content Script — injected into YouTube pages
  */
 
 import { YouTubeAdapter }  from './youtube/youtube-adapter.js';
@@ -58,7 +58,7 @@ try {
     }
   });
 } catch (err) {
-  console.warn('[SyncStream] Could not register message listener:', err);
+  console.warn('[Binge-Room] Could not register message listener:', err);
 }
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ function handleRoomJoined(room: Room, user: User, serverTime: number, isRejoin =
   engineRunning = true;
   overlay.show(room, true);
 
-  console.log('[SyncStream] Engine started for room', room.code, 'user', user.name, 'isHost', user.isHost, 'isRejoin', isRejoin);
+  console.log('[Binge-Room] Engine started for room', room.code, 'user', user.name, 'isHost', user.isHost, 'isRejoin', isRejoin);
 
   const vs = room.videoState;
 
@@ -125,10 +125,10 @@ function waitForControl(attemptsLeft: number, cb: () => void, forceOnTimeout = f
   if (adapter.canControl()) { cb(); return; }
   if (attemptsLeft <= 0) {
     if (forceOnTimeout) {
-      console.warn('[SyncStream] Forcing sync — player not yet ready, will re-seek on loadedmetadata');
+      console.warn('[Binge-Room] Forcing sync — player not yet ready, will re-seek on loadedmetadata');
       cb();
     } else {
-      console.warn('[SyncStream] Player never became controllable — skipping broadcast');
+      console.warn('[Binge-Room] Player never became controllable — skipping broadcast');
     }
     return;
   }
@@ -145,10 +145,10 @@ function handleRoomLeft() {
 
 function handleSyncCommand(payload: SyncUpdatePayload & { action?: string; serverTime?: number }) {
   if (!engineRunning) {
-    console.warn('[SyncStream] SYNC_COMMAND ignored — engine not running', payload.action);
+    console.warn('[Binge-Room] SYNC_COMMAND ignored — engine not running', payload.action);
     return;
   }
-  console.log('[SyncStream] Applying sync command:', payload.action, payload.triggeredByName);
+  console.log('[Binge-Room] Applying sync command:', payload.action, payload.triggeredByName);
   engine.applySync(payload, payload.serverTime ?? Date.now());
 }
 
@@ -164,8 +164,8 @@ if (isContextValid()) {
       }
     });
   } catch (err) {
-    console.warn('[SyncStream] Could not send GET_ROOM_STATE:', err);
+    console.warn('[Binge-Room] Could not send GET_ROOM_STATE:', err);
   }
 }
 
-console.log('[SyncStream] Content script ready on', window.location.hostname);
+console.log('[Binge-Room] Content script ready on', window.location.hostname);

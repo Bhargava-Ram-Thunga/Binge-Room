@@ -1,5 +1,5 @@
 {
-  "name": "@syncstream/event-schema",
+  "name": "@binge-room/event-schema",
   "version": "1.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -10,7 +10,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@syncstream/shared-types": "workspace:*"
+    "@binge-room/shared-types": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.1.0",

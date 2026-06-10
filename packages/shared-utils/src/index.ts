@@ -114,7 +114,7 @@ export function sanitizeUsername(name: string): string {
 
 // ─── Invite Link ──────────────────────────────────────────────────────────────
 
-export function buildInviteLink(code: string, baseUrl = 'https://syncstream.app'): string {
+export function buildInviteLink(code: string, baseUrl = 'https://bingeroom.app'): string {
   return `${baseUrl}/join/${code}`;
 }
 

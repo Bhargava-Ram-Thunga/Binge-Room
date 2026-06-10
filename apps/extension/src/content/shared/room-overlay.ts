@@ -110,7 +110,7 @@ export class RoomOverlay {
     if (this.host) return;
 
     this.host = document.createElement('div');
-    this.host.id = 'syncstream-overlay';
+    this.host.id = 'binge-room-overlay';
     this.shadow = this.host.attachShadow({ mode: 'closed' });
 
     const style = document.createElement('style');
@@ -121,7 +121,7 @@ export class RoomOverlay {
     overlay.innerHTML = `
       <div class="dot"></div>
       <div class="info">
-        <span class="logo">SyncStream</span>
+        <span class="logo">Binge-Room</span>
         <div>Room <span class="code">------</span></div>
         <div class="users">0 watching</div>
       </div>

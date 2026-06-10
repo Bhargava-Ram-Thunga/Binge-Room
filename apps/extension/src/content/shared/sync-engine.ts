@@ -13,10 +13,10 @@
  * apply() calls to prevent feedback loops.
  */
 
-import type { PlatformAdapter } from '@syncstream/platform-sdk';
+import type { PlatformAdapter } from '@binge-room/platform-sdk';
 import type { SyncUpdatePayload, Room, User, VideoState } from '../../types/index.js';
-import { computeExpectedTime, isDriftExceeded } from '@syncstream/shared-utils';
-import { DRIFT_THRESHOLD_MS, SYNC_INTERVAL_MS } from '@syncstream/event-schema';
+import { computeExpectedTime, isDriftExceeded } from '@binge-room/shared-utils';
+import { DRIFT_THRESHOLD_MS, SYNC_INTERVAL_MS } from '@binge-room/event-schema';
 
 // How long to hold the "applying" lock after sending a remote command to the
 // adapter.  Must be long enough to cover async buffering / 'seeked' events
@@ -54,7 +54,7 @@ export class SyncEngine {
     this.onDenied = onDenied;
     this.attachVideoListeners();
     this.startDriftCorrection();
-    console.log('[SyncStream Engine] Started for room', room.id);
+    console.log('[Binge-Room Engine] Started for room', room.id);
   }
 
   stop(): void {
@@ -71,7 +71,7 @@ export class SyncEngine {
     this.applying = false;
     this.room = null;
     this.currentUser = null;
-    console.log('[SyncStream Engine] Stopped');
+    console.log('[Binge-Room Engine] Stopped');
   }
 
   updateRoom(room: Room): void {
@@ -356,7 +356,7 @@ export class SyncEngine {
       const actual = this.adapter.getCurrentTime();
 
       if (isDriftExceeded(actual, expected, DRIFT_THRESHOLD_MS)) {
-        console.log(`[SyncStream Engine] Drift ${((actual - expected) * 1000).toFixed(0)}ms — correcting`);
+        console.log(`[Binge-Room Engine] Drift ${((actual - expected) * 1000).toFixed(0)}ms — correcting`);
         this.setApplying();
         this.adapter.seek(expected);
       }

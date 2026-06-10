@@ -10,13 +10,13 @@ import type {
   VideoChangePayload,
   AdStartPayload,
   AdEndPayload,
-} from '@syncstream/shared-types';
+} from '@binge-room/shared-types';
 import {
   CLIENT_EVENTS,
   SERVER_EVENTS,
   ROOM_CODE_REGEX,
   USERNAME_MAX_LENGTH,
-} from '@syncstream/event-schema';
+} from '@binge-room/event-schema';
 import { roomService } from '../rooms/room.service.js';
 import { SocketRateLimiter } from '../middleware/rate-limiter.js';
 import { config } from '../config/index.js';

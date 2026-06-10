@@ -1,4 +1,4 @@
-import type { Platform, VideoState } from '@syncstream/shared-types';
+import type { Platform, VideoState } from '@binge-room/shared-types';
 
 // ─── Platform Adapter Interface ───────────────────────────────────────────────
 // Every streaming platform must implement this contract.

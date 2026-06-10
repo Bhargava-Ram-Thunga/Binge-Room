@@ -1,6 +1,6 @@
-import type { Room, User, VideoState, CreateRoomPayload, JoinRoomPayload } from '@syncstream/shared-types';
-import { generateRoomId, generateRoomCode, sanitizeUsername } from '@syncstream/shared-utils';
-import { MAX_ROOM_USERS } from '@syncstream/event-schema';
+import type { Room, User, VideoState, CreateRoomPayload, JoinRoomPayload } from '@binge-room/shared-types';
+import { generateRoomId, generateRoomCode, sanitizeUsername } from '@binge-room/shared-utils';
+import { MAX_ROOM_USERS } from '@binge-room/event-schema';
 import { redisAdapter } from '../adapters/redis.adapter.js';
 import { logger } from '../utils/logger.js';
 

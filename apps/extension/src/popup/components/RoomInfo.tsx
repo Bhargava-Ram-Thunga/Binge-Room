@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { roomService }   from '../../services/room.service.js';
 import { useRoomStore }  from '../../store/room.store.js';
-import { buildInviteLink, formatTime } from '@syncstream/shared-utils';
+import { buildInviteLink, formatTime } from '@binge-room/shared-utils';
 import type { Room, User } from '../../types/index.js';
 
 interface Props { room: Room; user: User; }
@@ -45,7 +45,7 @@ export default function RoomInfo({ room, user }: Props) {
           <div style={{ width:24, height:24, borderRadius:6, background:'linear-gradient(135deg,#6366f1,#a855f7)', display:'flex', alignItems:'center', justifyContent:'center' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </div>
-          <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>SyncStream</span>
+          <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Binge-Room</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:5, padding:'3px 9px', borderRadius:20,
           background: isConnected ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',

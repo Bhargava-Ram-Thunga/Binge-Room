@@ -30,10 +30,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@syncstream/shared-types': resolve(pkgs, 'shared-types/src/index.ts'),
-      '@syncstream/shared-utils': resolve(pkgs, 'shared-utils/src/index.ts'),
-      '@syncstream/event-schema': resolve(pkgs, 'event-schema/src/index.ts'),
-      '@syncstream/platform-sdk': resolve(pkgs, 'platform-sdk/src/index.ts'),
+      '@binge-room/shared-types': resolve(pkgs, 'shared-types/src/index.ts'),
+      '@binge-room/shared-utils': resolve(pkgs, 'shared-utils/src/index.ts'),
+      '@binge-room/event-schema': resolve(pkgs, 'event-schema/src/index.ts'),
+      '@binge-room/platform-sdk': resolve(pkgs, 'platform-sdk/src/index.ts'),
     },
   },
 });

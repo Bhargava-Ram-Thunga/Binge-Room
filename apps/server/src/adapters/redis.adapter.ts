@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import type { Room, VideoState } from '@syncstream/shared-types';
+import type { Room, VideoState } from '@binge-room/shared-types';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 

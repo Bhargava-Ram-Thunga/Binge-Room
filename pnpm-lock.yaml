@@ -23,13 +23,13 @@ importers:
 
   apps/extension:
     dependencies:
-      '@syncstream/event-schema':
+      '@binge-room/event-schema':
         specifier: workspace:*
         version: link:../../packages/event-schema
-      '@syncstream/shared-types':
+      '@binge-room/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@syncstream/shared-utils':
+      '@binge-room/shared-utils':
         specifier: workspace:*
         version: link:../../packages/shared-utils
       react:
@@ -84,13 +84,13 @@ importers:
 
   apps/server:
     dependencies:
-      '@syncstream/event-schema':
+      '@binge-room/event-schema':
         specifier: workspace:*
         version: link:../../packages/event-schema
-      '@syncstream/shared-types':
+      '@binge-room/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@syncstream/shared-utils':
+      '@binge-room/shared-utils':
         specifier: workspace:*
         version: link:../../packages/shared-utils
       cors:
@@ -142,7 +142,7 @@ importers:
 
   packages/event-schema:
     dependencies:
-      '@syncstream/shared-types':
+      '@binge-room/shared-types':
         specifier: workspace:*
         version: link:../shared-types
     devDependencies:
@@ -155,7 +155,7 @@ importers:
 
   packages/platform-sdk:
     dependencies:
-      '@syncstream/shared-types':
+      '@binge-room/shared-types':
         specifier: workspace:*
         version: link:../shared-types
     devDependencies:

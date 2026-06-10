@@ -7,10 +7,10 @@
  * in the page's isolated JS world and is not reliably reachable.
  */
 
-import { BaseAdapter } from '@syncstream/platform-sdk';
+import { BaseAdapter } from '@binge-room/platform-sdk';
 import type { VideoState } from '../../types/index.js';
-import { extractYouTubeVideoId } from '@syncstream/shared-utils';
-import { debounce } from '@syncstream/shared-utils';
+import { extractYouTubeVideoId } from '@binge-room/shared-utils';
+import { debounce } from '@binge-room/shared-utils';
 
 const YT_STATE = {
   PLAYING: 1,

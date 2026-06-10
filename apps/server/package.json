@@ -1,5 +1,5 @@
 {
-  "name": "@syncstream/server",
+  "name": "@binge-room/server",
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",
@@ -10,9 +10,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@syncstream/shared-types": "workspace:*",
-    "@syncstream/event-schema": "workspace:*",
-    "@syncstream/shared-utils": "workspace:*",
+    "@binge-room/shared-types": "workspace:*",
+    "@binge-room/event-schema": "workspace:*",
+    "@binge-room/shared-utils": "workspace:*",
     "express": "^4.19.0",
     "socket.io": "^4.7.5",
     "ioredis": "^5.4.1",

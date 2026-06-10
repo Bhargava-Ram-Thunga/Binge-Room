@@ -17,7 +17,7 @@ export default function JoinRoom({ onBack }: Props) {
     // Auto-fill from invite link if present in the current tab URL
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0]?.url ?? '';
-      const m   = url.match(/syncstream\.app\/join\/([A-Z0-9]{6})/i);
+      const m   = url.match(/binge-room\.app\/join\/([A-Z0-9]{6})/i);
       if (m) setCells(m[1].toUpperCase().split(''));
     });
   }, []);

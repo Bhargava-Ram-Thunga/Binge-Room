@@ -65,7 +65,7 @@ async function bootstrap() {
   // ─── Start ────────────────────────────────────────────────────────────────
 
   httpServer.listen(config.port, () => {
-    logger.info(`SyncStream server running on port ${config.port}`, {
+    logger.info(`Binge-Room server running on port ${config.port}`, {
       env: config.nodeEnv,
       port: config.port,
     });

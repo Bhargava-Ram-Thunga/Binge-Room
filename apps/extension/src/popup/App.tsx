@@ -67,7 +67,7 @@ function Header({ connected }: { connected: boolean }) {
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
       </div>
-      <span className="text-sm font-bold tracking-tight text-white">SyncStream</span>
+      <span className="text-sm font-bold tracking-tight text-white">Binge-Room</span>
 
       {/* Status */}
       <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full"

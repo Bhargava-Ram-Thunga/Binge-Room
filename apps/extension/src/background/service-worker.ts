@@ -1,5 +1,5 @@
 /**
- * SyncStream Background Service Worker (Manifest V3)
+ * Binge-Room Background Service Worker (Manifest V3)
  *
  * Key responsibilities:
  *  - Single Socket.IO connection to the server
@@ -21,14 +21,14 @@ import type {
 import {
   CLIENT_EVENTS, SERVER_EVENTS,
   RECONNECT_ATTEMPTS, RECONNECT_DELAY_MS,
-} from '@syncstream/event-schema';
-import { sanitizeUsername } from '@syncstream/shared-utils';
+} from '@binge-room/event-schema';
+import { sanitizeUsername } from '@binge-room/shared-utils';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const SERVER_URL     = 'http://localhost:4000';
-const STORAGE_KEY    = 'syncstream_state';
-const KEEPALIVE_ALARM = 'syncstream_keepalive';
+const STORAGE_KEY    = 'binge_room_state';
+const KEEPALIVE_ALARM = 'binge_room_keepalive';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 

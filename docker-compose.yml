@@ -15,7 +15,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - syncstream
+      - binge-room
 
   redis:
     image: redis:7-alpine
@@ -30,11 +30,11 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - syncstream
+      - binge-room
 
 volumes:
   redis_data:
 
 networks:
-  syncstream:
+  binge-room:
     driver: bridge
