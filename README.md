@@ -17,7 +17,7 @@ A production-grade, scalable watch party platform built as a Chrome Extension (M
 | Animated toast notifications                       | ✅ Completed  |
 | In-video overlay (room code + participant count)   | ✅ Completed  |
 | Auto-reconnect & state restoration                 | ✅ Completed  |
-| JioCinema & Hotstar playback sync                  | 🔜 Next Phase |
+| JioHotstar playback sync                           | 🔜 Next Phase |
 | Firefox & Cross-browser support (Gecko engine)     | 🔜 Next Phase |
 | Voice/group chat (Daily.co)                        | 🔜 Phase 3    |
 | Netflix, Prime Video, Disney+, Twitch adapters     | 🔜 Phase 3    |
@@ -202,6 +202,6 @@ Server is exposed on port `4000`. Configure `CLIENT_ORIGIN` in
 ## 🗺 Roadmap
 
 - **Phase 1 (Completed)** — Core Watch Party Engine, YouTube Adapter, Sync Engine, Drift Correction, Ad Detection
-- **Phase 2 (Immediate Next)** — JioCinema & Hotstar Adapters, Firefox Compatibility & Cross-Browser functionality
+- **Phase 2 (Immediate Next)** — JioHotstar Adapter, Firefox Compatibility & Cross-Browser functionality
 - **Phase 3 (Upcoming)** — Netflix, Prime Video, Disney+, Twitch adapters; Voice & Video group chat (Daily.co integration)
 - **Phase 4 (Future)** — Mobile support, AI recommendations, Public rooms, Streaming analytics

@@ -44,25 +44,16 @@ To synchronize video streaming platforms, we isolate platform-specific code from
 
 ---
 
-## 🔜 Next Phase: JioCinema, Hotstar, and Firefox Compatibility
+## 🔜 Next Phase: JioHotstar and Firefox Compatibility
 
-### 1. JioCinema Integration (`jiocinema.com`)
+### 1. JioHotstar Integration (`jiohotstar.com`)
 
-- **Add Platform Type:** Add `'jiocinema'` to the `Platform` type in [shared-types](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/shared-types/src/index.ts).
-- **Update Detector:** Update `AdapterRegistry.detect()` in [platform-sdk](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/platform-sdk/src/index.ts) to match `hostname.includes('jiocinema.com')`.
-- **Create JioCinemaAdapter:**
-  - Locate and target the primary HTML5 `<video>` element on JioCinema pages. Note: JioCinema uses dynamic classes and custom player wrapper components. Use resilient selectors (e.g., `document.querySelector('video')` or wait for player nodes).
-  - Implement **Ad Detection (`isAdPlaying`)**: JioCinema serves ads using standard ad wrappers or client-side frames. Detect ads by looking for specific indicators in the DOM (e.g., countdown elements, skip buttons, ad overlays) or listening to player events that differ from standard playback.
-- **Update Extension Manifest:** Add `*://*.jiocinema.com/*` to the `content_scripts` match array in the extension manifest.
-
-### 2. Hotstar Integration (`hotstar.com`)
-
-- **Add Platform Type:** Add `'hotstar'` to the `Platform` type in [shared-types](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/shared-types/src/index.ts).
-- **Update Detector:** Update `AdapterRegistry.detect()` in [platform-sdk](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/platform-sdk/src/index.ts) to match `hostname.includes('hotstar.com')`.
-- **Create HotstarAdapter:**
-  - Identify video tags under Hotstar's custom player container (usually under classes like `.shanti-player` or `.video-container`).
-  - Account for hotkeys and quality selectors that trigger native seek/reload events.
-- **Update Extension Manifest:** Add `*://*.hotstar.com/*` to the `content_scripts` matches.
+- **Add Platform Type:** Add `'jiohotstar'` to the `Platform` type in [shared-types](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/shared-types/src/index.ts).
+- **Update Detector:** Update `AdapterRegistry.detect()` in [platform-sdk](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/platform-sdk/src/index.ts) to match `hostname.includes('jiohotstar.com')`.
+- **Create JioHotstarAdapter:**
+  - Locate and target the primary HTML5 `<video>` element on JioHotstar watch pages. Selectors must be resilient to custom players and container overrides (e.g., `document.querySelector('video')` or waiting for dynamic player containers).
+  - Implement **Ad Detection (`isAdPlaying`)**: Detect video ads by looking for indicators in the DOM (e.g., skip buttons, countdown overlays, specific ad classes/styles in player containers) or differences in player states during ad runs.
+- **Update Extension Manifest:** Add `*://*.jiohotstar.com/*` to the `content_scripts` match array in the extension manifest.
 
 ### 3. Firefox Compatibility & Cross-Browser Support
 
