@@ -26,14 +26,15 @@ Real-time watch party platform project tracking board.
 | **BR-108** | Setup project-specific `CLAUDE.md` and `AGENTS.md` guidelines            | Root                    | June 10, 2026  |
 | **BR-109** | Resolve Platform SDK missing browser environment DOM typings             | `packages/platform-sdk` | June 10, 2026  |
 | **BR-201** | Create Project Board and define Phase 2 tasks, milestones, and deadlines | Root                    | June 10, 2026  |
+| **BR-209** | Setup GitHub Actions CI workflows for linting, building, and unit tests  | `.github/workflows`     | June 10, 2026  |
 
 ---
 
 ## 🟡 IN PROGRESS (Under Active Development)
 
-| Task ID    | Task Description                                                        | Component           | Target Date   |
-| :--------- | :---------------------------------------------------------------------- | :------------------ | :------------ |
-| **BR-209** | Setup GitHub Actions CI workflows for linting, building, and unit tests | `.github/workflows` | June 11, 2026 |
+| Task ID    | Task Description                                               | Component               | Target Date   |
+| :--------- | :------------------------------------------------------------- | :---------------------- | :------------ |
+| **BR-202** | Add `'jiohotstar'` platform type to `@binge-room/shared-types` | `packages/shared-types` | June 11, 2026 |
 
 ---
 
@@ -43,7 +44,6 @@ Real-time watch party platform project tracking board.
 
 | Task ID    | Task Description                                                                       | Component               | Priority | Target Date   |
 | :--------- | :------------------------------------------------------------------------------------- | :---------------------- | :------- | :------------ |
-| **BR-202** | Add `'jiohotstar'` platform type to `@binge-room/shared-types`                         | `packages/shared-types` | High     | June 12, 2026 |
 | **BR-203** | Update detector hostname parsing in `AdapterRegistry` to match `jiohotstar.com`        | `packages/platform-sdk` | High     | June 12, 2026 |
 | **BR-204** | Create `JioHotstarAdapter` with resilient video selector & custom player state         | `apps/extension`        | High     | June 15, 2026 |
 | **BR-205** | Implement ad detection indicators for `JioHotstarAdapter` (`isAdPlaying`)              | `apps/extension`        | High     | June 16, 2026 |
