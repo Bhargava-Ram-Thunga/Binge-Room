@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - prod
+      - dev
+  pull_request:
+    branches:
+      - prod
+      - dev
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Update Board to Running
+        if: always()
+        run: node scripts/update-build-status.mjs running
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit Dependencies for Vulnerabilities
+        run: pnpm audit --audit-level=high
+
+      - name: Build Monorepo
+        run: pnpm build
+
+      - name: Run Lint
+        run: pnpm lint
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Update Board to Passed
+        if: success()
+        run: node scripts/update-build-status.mjs success
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Update Board to Failed
+        if: failure()
+        run: node scripts/update-build-status.mjs failure
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
