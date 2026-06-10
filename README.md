@@ -1,4 +1,4 @@
-# SyncStream
+# Binge-Room
 
 > **Watch YouTube videos together — perfectly in sync.**
 
@@ -25,7 +25,7 @@ A production-grade, scalable watch party platform built as a Chrome Extension (M
 ## 🏗 Monorepo Structure
 
 ```
-syncstream/
+binge-room/
 ├── apps/
 │   ├── extension/          # Chrome MV3 extension (React + Tailwind)
 │   │   ├── src/
@@ -84,7 +84,7 @@ docker compose up redis -d
 ### 3. Start the server
 
 ```bash
-pnpm --filter @syncstream/server dev
+pnpm --filter @binge-room/server dev
 ```
 
 Server runs on `http://localhost:4000`.  
@@ -93,7 +93,7 @@ Health check: `http://localhost:4000/health`
 ### 4. Build the extension
 
 ```bash
-pnpm --filter @syncstream/extension build
+pnpm --filter @binge-room/extension build
 ```
 
 Output: `apps/extension/dist/`
