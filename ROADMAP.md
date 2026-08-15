@@ -146,7 +146,7 @@ Three parallelizable tracks:
 - Web app parity for users without the extension (view + chat + voice at minimum).
 - Generated browser compatibility matrix, continuously verified in CI.
 
-## Phase 12 — Scale & Hardening `M11` *(runs alongside 9–11)*
+## Phase 12 — Scale & Hardening `M11` _(runs alongside 9–11)_
 
 - Load tests: 25 → 50 → 100 participants; WebSocket, chat, DB, Redis, SFU load; join/leave/reconnect storms.
 - Subscription optimization (subscribe only to displayed tracks), CPU/memory/bandwidth profiling.
@@ -198,21 +198,21 @@ Phase 2 (Auth) ──→ Phase 3 (Rooms) ──→ Phase 4 (Realtime)
 
 ## Milestones
 
-| Milestone | Name | Phases |
-| --- | --- | --- |
-| M0 | Architecture | 0 |
-| M1 | Foundation | 1–2 |
-| M2 | Rooms | 3 |
-| M3 | Realtime | 4 |
-| M4 | Playback Sync | 5 |
-| M5 | Generic Web Video | 6 |
-| M6 | Chat | 7–8 |
-| M7 | Voice | 8 |
-| M8 | Video | 9–10 |
-| M9 | Browser Expansion | 10–11 |
-| M10 | Mobile | 13 |
-| M11 | Scale | 12 |
-| M12 | Public Beta | 14 |
+| Milestone | Name              | Phases |
+| --------- | ----------------- | ------ |
+| M0        | Architecture      | 0      |
+| M1        | Foundation        | 1–2    |
+| M2        | Rooms             | 3      |
+| M3        | Realtime          | 4      |
+| M4        | Playback Sync     | 5      |
+| M5        | Generic Web Video | 6      |
+| M6        | Chat              | 7–8    |
+| M7        | Voice             | 8      |
+| M8        | Video             | 9–10   |
+| M9        | Browser Expansion | 10–11  |
+| M10       | Mobile            | 13     |
+| M11       | Scale             | 12     |
+| M12       | Public Beta       | 14     |
 
 ## Definition of Done (every issue)
 
