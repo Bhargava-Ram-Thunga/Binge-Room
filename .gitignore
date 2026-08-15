@@ -1,52 +1,12 @@
-# Dependencies
 node_modules/
-.pnpm-store/
-
-# Builds and Outputs
 dist/
-build/
-.next/
-out/
+coverage/
 .turbo/
 *.tsbuildinfo
-*.log
-coverage/
-.nyc_output/
 
-# IDEs and Editors
-.vscode/
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/settings.json
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Environment Variables & Secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*.local
-*.pem
-*.key
+.env.*
+!.env.example
 
-# Operating System Files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Diagnostic / Cache
-.eslintcache
-.parcel-cache
-.cache/
-.serverless/
-.dynamodb/
+*.log

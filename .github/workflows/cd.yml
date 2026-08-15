@@ -1,0 +1,98 @@
+name: CD
+
+# Promotion flow: feature/* → dev (staging) → main (release candidate) → prod (production).
+# Deploy steps are placeholders until the server and extension apps exist
+# (see ROADMAP Phase 1–6); the gating, artifacts and environments are real.
+
+on:
+  push:
+    branches: [dev, main, prod]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options: [staging, production]
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build release artifact
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify before packaging
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+      - run: pnpm build
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: 'packages/*/dist/**'
+          retention-days: 30
+          if-no-files-found: ignore
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: package
+    if: github.ref_name == 'dev' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ needs.package.outputs.sha }}
+          path: ./artifact
+        continue-on-error: true
+      - name: Deploy
+        run: |
+          echo "Deploying ${{ needs.package.outputs.sha }} to STAGING."
+          echo "TODO: wire real deployment once services/api exists (ROADMAP Phase 2+)."
+
+  smoke-staging:
+    name: Staging smoke tests
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run smoke checks
+        run: |
+          echo "TODO: health check + room create/join smoke test against staging."
+
+  deploy-production:
+    name: Deploy to production
+    needs: package
+    if: github.ref_name == 'prod' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    runs-on: ubuntu-latest
+    # Configure required reviewers on this environment in repo settings
+    # so production deploys wait for manual approval.
+    environment:
+      name: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ needs.package.outputs.sha }}
+          path: ./artifact
+        continue-on-error: true
+      - name: Deploy
+        run: |
+          echo "Deploying ${{ needs.package.outputs.sha }} to PRODUCTION."
+          echo "TODO: wire real deployment once services/api exists (ROADMAP Phase 2+)."
