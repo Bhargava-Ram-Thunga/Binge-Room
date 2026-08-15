@@ -6,8 +6,8 @@
 
 ```ts
 // apps/extension/src/content/netflix/netflix-adapter.ts
-import { BaseAdapter } from "@binge-room/platform-sdk";
-import type { VideoState } from "@binge-room/shared-types";
+import { BaseAdapter } from "@huddly/platform-sdk";
+import type { VideoState } from "@huddly/shared-types";
 
 export class NetflixAdapter extends BaseAdapter {
   readonly platform = "netflix" as const;
@@ -82,7 +82,7 @@ export class NetflixAdapter extends BaseAdapter {
 
 ```ts
 // apps/extension/src/content/index.ts
-import { AdapterRegistry } from "@binge-room/platform-sdk";
+import { AdapterRegistry } from "@huddly/platform-sdk";
 import { NetflixAdapter } from "./netflix/netflix-adapter.js";
 
 AdapterRegistry.register("netflix", () => new NetflixAdapter());

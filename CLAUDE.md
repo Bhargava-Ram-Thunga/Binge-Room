@@ -1,6 +1,6 @@
-# Claude Code Integration Guide — Binge-Room
+# Claude Code Integration Guide — Huddly
 
-This document outlines how to effectively leverage **Claude Code** and its installed skills to develop, debug, and audit the **Binge-Room** monorepo.
+This document outlines how to effectively leverage **Claude Code** and its installed skills to develop, debug, and audit the **Huddly** monorepo.
 
 ---
 
@@ -46,7 +46,7 @@ Your workspace has access to global and project skills. When working with Claude
 
 - **`typescript-pro` / `typescript-expert`**
   - **Purpose:** Help design strict TypeScript architectures, resolve complex generics, and optimize typing layouts.
-  - **When to use:** Modifying `@binge-room/shared-types` or `@binge-room/platform-sdk` interfaces.
+  - **When to use:** Modifying `@huddly/shared-types` or `@huddly/platform-sdk` interfaces.
 - **`zustand-store-ts`**
   - **Purpose:** Guide Zustand store design.
   - **When to use:** Editing state synchronization logic in the extension popup (`apps/extension/src/store`).
@@ -91,10 +91,10 @@ pnpm install
 pnpm build
 
 # Build only the extension app
-pnpm --filter @binge-room/extension build
+pnpm --filter @huddly/extension build
 
 # Build only the server app
-pnpm --filter @binge-room/server build
+pnpm --filter @huddly/server build
 ```
 
 ### 🧪 Test & Lint

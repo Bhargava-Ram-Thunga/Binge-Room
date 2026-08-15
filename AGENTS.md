@@ -1,12 +1,12 @@
-# AI Agent Coding Guidelines — Binge-Room
+# AI Agent Coding Guidelines — Huddly
 
-Welcome, Agent. This file provides context, rules of engagement, codebase architecture, and implementation details for the **Binge-Room** project. You must strictly follow these rules to ensure the codebase remains clean, compile-safe, and scalable.
+Welcome, Agent. This file provides context, rules of engagement, codebase architecture, and implementation details for the **Huddly** project. You must strictly follow these rules to ensure the codebase remains clean, compile-safe, and scalable.
 
 ---
 
 ## 💻 Tech Stack & Monorepo Architecture
 
-Binge-Room is a pnpm monorepo organized as follows:
+Huddly is a pnpm monorepo organized as follows:
 
 - **`apps/extension`**: Chrome Manifest V3 Extension (React 18, Tailwind CSS v3, Zustand state management, built with esbuild + Vite).
 - **`apps/server`**: Socket.IO server (Node.js, Express, Winston logger, Zod schema validation, backed by Redis for quick room states).
@@ -24,7 +24,7 @@ Binge-Room is a pnpm monorepo organized as follows:
 To synchronize video streaming platforms, we isolate platform-specific code from our core sync engine.
 
 - **DO NOT** write platform-specific logic directly in the content scripts or background scripts.
-- **DO** create a new platform adapter that extends `BaseAdapter` from `@binge-room/platform-sdk`.
+- **DO** create a new platform adapter that extends `BaseAdapter` from `@huddly/platform-sdk`.
 - Implement all required methods (`play()`, `pause()`, `seek()`, `getCurrentTime()`, `isPlaying()`, `isAdPlaying()`, and event listener callbacks).
 - Use `this.addDomListener` inside the adapter for target events. This ensures that when the user leaves a room, calling `destroy()` cleans up all DOM listeners to prevent memory leaks.
 - Register the new adapter in the `AdapterRegistry`.
@@ -33,13 +33,13 @@ To synchronize video streaming platforms, we isolate platform-specific code from
 
 - The monorepo has strict TypeScript enabled.
 - Avoid using `any`. If a type is unknown, use `unknown` or cast it appropriately with type guards.
-- Keep `@binge-room/shared-types` updated when introducing new message types or platform schemas.
+- Keep `@huddly/shared-types` updated when introducing new message types or platform schemas.
 - If you make changes in any package, run `pnpm build` immediately to verify there are no TypeScript compiler errors across workspace boundaries.
 
 ### 3. State & Sync Logic
 
 - All popup UI state is maintained in a Zustand store.
-- Real-time communication happens via WebSocket events validated through `@binge-room/event-schema`.
+- Real-time communication happens via WebSocket events validated through `@huddly/event-schema`.
 - Background service worker acts as the single source of truth for connection state and room information, passing commands to content scripts via chrome runtime messaging.
 
 ---
@@ -48,8 +48,8 @@ To synchronize video streaming platforms, we isolate platform-specific code from
 
 ### 1. JioHotstar Integration (`jiohotstar.com`)
 
-- **Add Platform Type:** Add `'jiohotstar'` to the `Platform` type in [shared-types](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/shared-types/src/index.ts).
-- **Update Detector:** Update `AdapterRegistry.detect()` in [platform-sdk](file:///Users/bhargavaramthunga/Projects/Binge-Room/packages/platform-sdk/src/index.ts) to match `hostname.includes('jiohotstar.com')`.
+- **Add Platform Type:** Add `'jiohotstar'` to the `Platform` type in [shared-types](file:///Users/bhargavaramthunga/Projects/Huddly/packages/shared-types/src/index.ts).
+- **Update Detector:** Update `AdapterRegistry.detect()` in [platform-sdk](file:///Users/bhargavaramthunga/Projects/Huddly/packages/platform-sdk/src/index.ts) to match `hostname.includes('jiohotstar.com')`.
 - **Create JioHotstarAdapter:**
   - Locate and target the primary HTML5 `<video>` element on JioHotstar watch pages. Selectors must be resilient to custom players and container overrides (e.g., `document.querySelector('video')` or waiting for dynamic player containers).
   - Implement **Ad Detection (`isAdPlaying`)**: Detect video ads by looking for indicators in the DOM (e.g., skip buttons, countdown overlays, specific ad classes/styles in player containers) or differences in player states during ad runs.
