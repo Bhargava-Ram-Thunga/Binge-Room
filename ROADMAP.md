@@ -199,7 +199,7 @@ Phase 2 (Auth) ──→ Phase 3 (Rooms) ──→ Phase 4 (Realtime)
 ## Milestones
 
 | Milestone | Name | Phases |
-|---|---|---|
+| --- | --- | --- |
 | M0 | Architecture | 0 |
 | M1 | Foundation | 1–2 |
 | M2 | Rooms | 3 |

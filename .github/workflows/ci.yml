@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, prod]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Docs lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint markdown
+        uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: "**/*.md"
+
+  workspace:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pnpm monorepo lands with FOUND-001; until then this job is a no-op.
+      - name: Detect workspace
+        id: ws
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No pnpm-lock.yaml yet — skipping workspace checks."
+          fi
+
+      - name: Setup pnpm
+        if: steps.ws.outputs.present == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        if: steps.ws.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.ws.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: steps.ws.outputs.present == 'true'
+        run: pnpm lint
+
+      - name: Typecheck
+        if: steps.ws.outputs.present == 'true'
+        run: pnpm typecheck
+
+      - name: Test
+        if: steps.ws.outputs.present == 'true'
+        run: pnpm test
+
+      - name: Build
+        if: steps.ws.outputs.present == 'true'
+        run: pnpm build
