@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned and current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    groups:
+      actions:
+        patterns:
+          - "*"
+    labels:
+      - type:infrastructure
+      - area:devops
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # npm workspaces — activates once the pnpm monorepo lands (FOUND-001)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Kolkata
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns:
+          - "*"
+      production-dependencies:
+        dependency-type: production
+        patterns:
+          - "*"
+    labels:
+      - type:infrastructure
+      - area:devops
+    commit-message:
+      prefix: chore
+      include: scope
+    open-pull-requests-limit: 5

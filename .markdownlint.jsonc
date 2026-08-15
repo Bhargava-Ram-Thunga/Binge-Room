@@ -1,0 +1,12 @@
+{
+  // Keep markdown lint focused on correctness, not style-nitpicks.
+  "default": true,
+  "MD013": false, // line length — long spec/roadmap lines are fine
+  "MD024": false, // duplicate headings — phases reuse heading names
+  "MD033": false, // inline HTML — needed for badges/layout later
+  "MD036": false, // emphasis as heading
+  "MD041": false, // first line must be H1 — not true for all docs
+  "MD012": false, // multiple blank lines
+  "MD026": false, // trailing punctuation in headings
+  "MD029": false // ordered list numbering style
+}
