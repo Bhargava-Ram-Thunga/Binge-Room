@@ -3,15 +3,16 @@ updates:
   # Keep GitHub Actions pinned and current
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
-      time: "06:00"
+      time: '06:00'
       timezone: Asia/Kolkata
     groups:
       actions:
         patterns:
-          - "*"
+          - '*'
     labels:
       - type:infrastructure
       - area:devops
@@ -19,23 +20,24 @@ updates:
       prefix: chore
       include: scope
 
-  # npm workspaces — activates once the pnpm monorepo lands (FOUND-001)
+  # npm workspaces
   - package-ecosystem: npm
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
-      time: "06:00"
+      time: '06:00'
       timezone: Asia/Kolkata
     groups:
       dev-dependencies:
         dependency-type: development
         patterns:
-          - "*"
+          - '*'
       production-dependencies:
         dependency-type: production
         patterns:
-          - "*"
+          - '*'
     labels:
       - type:infrastructure
       - area:devops

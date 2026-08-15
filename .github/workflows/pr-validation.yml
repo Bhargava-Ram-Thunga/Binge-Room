@@ -1,0 +1,74 @@
+name: PR validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  title:
+    name: Conventional PR title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Title: $TITLE"
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+'
+          if ! echo "$TITLE" | grep -Eq "$pattern"; then
+            echo "::error::PR title must follow Conventional Commits, e.g. 'feat(sync): add drift correction'."
+            echo "Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+            exit 1
+          fi
+
+  branch-name:
+    name: Branch naming
+    runs-on: ubuntu-latest
+    # Long-lived promotion PRs (dev → main → prod) are exempt.
+    if: >-
+      github.head_ref != 'dev' && github.head_ref != 'main' && github.head_ref != 'prod' &&
+      !startsWith(github.head_ref, 'dependabot/')
+    steps:
+      - name: Validate branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          echo "Branch: $BRANCH"
+          pattern='^(feat|fix|docs|refactor|perf|test|build|ci|chore|hotfix)/[a-z0-9._-]+$'
+          if ! echo "$BRANCH" | grep -Eq "$pattern"; then
+            echo "::error::Branch must be named <type>/<short-description>, e.g. 'feat/room-invites' or 'fix/seek-drift'."
+            exit 1
+          fi
+
+  target:
+    name: Merge target
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce promotion flow
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          echo "$HEAD -> $BASE"
+          case "$BASE" in
+            dev)
+              # Feature and fix branches integrate into dev.
+              ;;
+            main)
+              if [ "$HEAD" != "dev" ] && [[ "$HEAD" != hotfix/* ]]; then
+                echo "::error::main only accepts promotions from dev (or hotfix/* branches)."
+                exit 1
+              fi
+              ;;
+            prod)
+              if [ "$HEAD" != "main" ] && [[ "$HEAD" != hotfix/* ]]; then
+                echo "::error::prod only accepts promotions from main (or hotfix/* branches)."
+                exit 1
+              fi
+              ;;
+          esac
+          echo "Merge target is valid."
