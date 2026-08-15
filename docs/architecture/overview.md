@@ -1,4 +1,4 @@
-# Binge-Room Architecture Overview
+# Huddly Architecture Overview
 
 ## System Diagram
 
@@ -25,7 +25,7 @@
                          │ WebSocket (Socket.IO)
                          ▼
          ┌──────────────────────────────┐
-         │   Binge-Room Server           │
+         │   Huddly Server           │
          │   Express + Socket.IO        │
          │                              │
          │  ┌──────────┐ ┌──────────┐  │
@@ -78,7 +78,7 @@ controls video navigation but doesn't affect event validation.
 ### MV3 Service Worker Persistence
 
 Manifest V3 service workers can be terminated after ~30 seconds of
-inactivity. Binge-Room uses a keepalive alarm (`chrome.alarms`) to
+inactivity. Huddly uses a keepalive alarm (`chrome.alarms`) to
 ping the server every 24 seconds while in an active room.
 
 ### Shadow DOM Isolation

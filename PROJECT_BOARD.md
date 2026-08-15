@@ -1,4 +1,4 @@
-# Binge-Room Project Board
+# Huddly Project Board
 
 Real-time watch party platform project tracking board.
 
@@ -34,7 +34,7 @@ Real-time watch party platform project tracking board.
 
 | Task ID    | Task Description                                               | Component               | Target Date   |
 | :--------- | :------------------------------------------------------------- | :---------------------- | :------------ |
-| **BR-202** | Add `'jiohotstar'` platform type to `@binge-room/shared-types` | `packages/shared-types` | June 11, 2026 |
+| **BR-202** | Add `'jiohotstar'` platform type to `@huddly/shared-types` | `packages/shared-types` | June 11, 2026 |
 
 ---
 
