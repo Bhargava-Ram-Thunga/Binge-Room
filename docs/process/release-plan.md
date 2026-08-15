@@ -6,15 +6,21 @@ releases under that constraint.
 
 **Baseline:** Saturday 15 Aug 2026.
 
-## The unit of work: one weekend
+## The unit of work: one session
 
-|              |                                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------- |
-| **Budget**   | ~10 focused hours (Sat ~6h, Sun ~4h)                                                               |
-| **Saturday** | Build. One phase-slice, feature branch, PR opened.                                                 |
-| **Sunday**   | Review, merge to `dev`, verify staging green, board hygiene. Promote at milestone boundaries only. |
+The build window is **Friday evening → Saturday 17:30**.
 
-Estimates below are in **weekends (WE)**, not calendar weeks. Dates assume no
+|                      |                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Budget**           | ~11 focused hours (Fri ~4h, Sat ~7h)                                                                     |
+| **Friday evening**   | Build. One phase-slice on a feature branch; open the PR before stopping.                                 |
+| **Saturday morning** | Finish the slice, write the tests, get CI green.                                                         |
+| **Saturday ~16:30**  | Land it: merge to `dev`, confirm staging is green, tidy the board. Promote only at milestone boundaries. |
+
+Leaving a PR open overnight is deliberate — CI runs while you sleep, so Saturday
+starts with feedback already waiting.
+
+Estimates below are in **sessions (WE)**, one per week, not calendar weeks. Dates assume no
 skipped weekends; see [Slip rule](#slip-rule).
 
 ## Schedule to MVP
@@ -91,7 +97,7 @@ permissions, the adapter SDK/registry, and 100-participant scale.
 
 ## Assumptions
 
-- ~10 productive hours per weekend, most weekends attended.
+- ~11 productive hours per session (Fri evening + Sat until 17:30), most weeks attended.
 - Heavy drafting (specs, code, tests) is AI-assisted; review and decisions are not.
 - LiveKit Cloud free tier for voice, not self-hosted (self-hosting adds ~2 WE).
 - No paid infrastructure blockers; hosting chosen by Phase 2.
