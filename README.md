@@ -1,6 +1,17 @@
 # Huddly
 
-> **Watch together. Talk together. Stay on your own screen.**
+<p align="center">
+  <img src="docs/design/brand/logo.svg" alt="Huddly Logo" width="120" />
+</p>
+
+<p align="center">
+  <strong>Watch together. Talk together. Stay on your own screen.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Bhargava-Ram-Thunga/Huddly/blob/dev/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-F2BB31?style=flat-square" alt="License: Apache 2.0" /></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Milestone-M0_Architecture-BF7118?style=flat-square" alt="Milestone: M0" /></a>
+</p>
 
 Huddly is an open-source realtime layer for being together on the web. Everyone
 watches through their own browser, on their own device — Huddly synchronizes the
@@ -13,11 +24,15 @@ watches through their own browser, on their own device — Huddly synchronizes t
 
 Screen sharing pipes one person's pixels to everyone — heavy, blurry, and it
 dies with their connection. Huddly instead distributes playback commands,
-timestamps and room state, so each participant's own browser plays their own
+timestamps, and room state, so each participant's own browser plays their own
 video, in sync.
 
 ## Documentation
 
+- [MVP Scope & Definition of Done](docs/MVP.md) — frozen MVP feature scope and DoD
+- [Realtime Protocol v1](docs/protocol/v1.md) — event envelope, catalog, and synchronization specs
+- [Database Schema v1](docs/database/schema-v1.md) — relational architecture, ERD, and lifecycle rules
+- [Brand Identity & Design Tokens](docs/design/brand/README.md) — visual system, palette, and tokens
 - [ROADMAP.md](ROADMAP.md) — phases, milestones, MVP definition
 - [CONTRIBUTING.md](CONTRIBUTING.md) — local setup and contribution guide
 - [docs/adr/](docs/adr/) — architecture decision records
