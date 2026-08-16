@@ -9,6 +9,18 @@ function generateRoomCode(): string {
   return `hud-${nanoid()}`;
 }
 
+type RoomMemberWithUser = Prisma.RoomMemberGetPayload<{
+  include: {
+    user: {
+      select: {
+        id: true;
+        displayName: true;
+        avatarUrl: true;
+      };
+    };
+  };
+}>;
+
 const CreateRoomSchema = z.object({
   name: z.string().min(1).max(100).default('Watch Room'),
   mediaUrl: z.string().url().optional(),
@@ -163,7 +175,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
       host: room.hostUser,
       settings: room.settings,
       memberCount: room.members.length,
-      members: room.members.map((m) => ({
+      members: room.members.map((m: RoomMemberWithUser) => ({
         id: m.id,
         userId: m.userId,
         displayName: m.user.displayName,
