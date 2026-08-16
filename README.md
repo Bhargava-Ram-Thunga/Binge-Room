@@ -19,7 +19,7 @@ Huddly synchronizes the **playback experience**, not the pixels.
 
   <br />
 
-> 🚧 **Early development** — Huddly is being built in the open. Nothing is installable yet. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
+> 🔒 **Personal Project** — Huddly is currently an active personal project. Nothing is installable yet. External contributions and pull requests are not being accepted at this time. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
 
   <br />
 
@@ -150,6 +150,7 @@ pnpm lint
 
 | Document                                              | Description                                                                            |
 | :---------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **[Architecture Overview](ARCHITECTURE.md)**          | System-wide four-layer model, architecture diagrams, data ownership, and workflows.    |
 | **[MVP Scope & DoD](docs/MVP.md)**                    | Frozen MVP feature boundaries, explicit non-goals, and Gherkin acceptance criteria.    |
 | **[Realtime Protocol v1](docs/protocol/v1.md)**       | WebSocket envelope, event catalog, authorization matrix, and NTP clock sync formulas.  |
 | **[Database Schema v1](docs/database/schema-v1.md)**  | PostgreSQL relational architecture, Mermaid ERD, hot queries, and GDPR erasure path.   |
@@ -159,13 +160,13 @@ pnpm lint
 
 ---
 
-## Contributing
+## Project Status & Contribution Policy
 
-We welcome contributions! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.
+Huddly is currently an active **personal project**.
 
-- **Branch Protection:** All work happens on feature branches targeting `dev`. Direct commits to `dev`, `main`, or `prod` are rejected.
-- **Commit Convention:** Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.).
-- **Local Checks:** Ensure `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `npx markdownlint-cli2` pass prior to pushing.
+- **No External Pull Requests:** We are not accepting pull requests, feature proposals, or code contributions from outside collaborators at this time.
+- **Development Process:** All development is carried out by the repository owner following the strict branch protection and conventional commit rules on `dev`.
+- **Code of Conduct:** Our [Code of Conduct](CODE_OF_CONDUCT.md) applies to all community interactions and issue discussions.
 
 ---
 
