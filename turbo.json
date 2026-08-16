@@ -1,18 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "db:generate": {
+      "cache": false
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^db:generate", "db:generate", "^build"],
       "outputs": ["dist/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^db:generate", "db:generate", "^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^db:generate", "db:generate", "^build"]
     },
     "test:coverage": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^db:generate", "db:generate", "^build"],
       "outputs": ["coverage/**"]
     }
   }
