@@ -2,7 +2,7 @@
 
 > **Core Philosophy:** _Synchronize state, not pixels._
 
-Huddly is an open-source, low-latency co-watching platform. Rather than re-encoding and re-transmitting heavy video feeds over WebRTC, Huddly synchronizes the playback state machine across heterogeneous client video players on the open web, paired with ultra-low-latency text chat and spatial voice communication.
+Huddly is a low-latency co-watching platform. Rather than re-encoding and re-transmitting heavy video feeds over WebRTC, Huddly synchronizes the playback state machine across heterogeneous client video players on the open web, paired with ultra-low-latency text chat and spatial voice communication.
 
 ---
 

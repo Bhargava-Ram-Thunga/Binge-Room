@@ -93,7 +93,7 @@
       <!-- Badge 1 -->
       <rect x="0" y="0" width="168" height="42" rx="21" fill="url(#badge-grad)" stroke="#364563" stroke-width="1.5" />
       <circle cx="22" cy="21" r="5" fill="#F2BB31" />
-      <text x="36" y="27" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FAF3E4">Open Source</text>
+      <text x="36" y="27" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#FAF3E4">Realtime Sync</text>
 
       <!-- Badge 2 -->
       <rect x="180" y="0" width="225" height="42" rx="21" fill="url(#badge-grad)" stroke="#364563" stroke-width="1.5" />
