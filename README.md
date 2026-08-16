@@ -19,7 +19,7 @@ Huddly synchronizes the **playback experience**, not the pixels.
 
   <br />
 
-> 🚧 **Early development** — Nothing is installable yet; external pull requests are not being accepted at this time. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
+> 🚧 **Early development** — Nothing is installable yet. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
 
   <br />
 
@@ -157,15 +157,6 @@ pnpm lint
 | **[Brand Kit & Tokens](docs/design/brand/README.md)** | Logo assets, OKLCH popcorn palette, golden-angle participant colors, and WCAG ratings. |
 | **[Release Plan](docs/process/release-plan.md)**      | Milestone schedule (M0–M12), release train targets, and the Slip Rule.                 |
 | **[Architecture Decisions](docs/adr/)**               | Formal ADR records for all fundamental technical choices.                              |
-
----
-
-## Project Status & Repository Policy
-
-Huddly is currently in active development under standard repository access controls.
-
-- **No External Pull Requests:** We are not accepting pull requests, feature proposals, or issues from outside collaborators at this time.
-- **Development Process:** All development follows the strict branch protection and conventional commit rules on `dev`.
 
 ---
 
