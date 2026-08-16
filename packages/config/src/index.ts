@@ -27,7 +27,7 @@ export const ConfigSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(32, { message: 'JWT_SECRET must be at least 32 characters long for security' })
-    .default('huddly_super_secret_development_jwt_key_32chars!'),
+    .default('replace-me-with-openssl-rand-hex-32-dev-key!'),
   CORS_ORIGINS: z
     .string()
     .optional()

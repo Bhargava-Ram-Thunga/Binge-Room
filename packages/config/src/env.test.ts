@@ -20,20 +20,20 @@ describe('@huddly/config', () => {
       NODE_ENV: 'production',
       PORT: '8080',
       WS_PORT: '8081',
-      DATABASE_URL: 'postgresql://user:pass@prod-db:5432/huddly_prod',
-      REDIS_PUBSUB_URL: 'redis://redis-cluster:6379/0',
-      REDIS_STATE_URL: 'redis://redis-cluster:6379/1',
-      JWT_SECRET: 'production_super_secure_secret_key_exceeding_32_characters',
+      DATABASE_URL: 'postgresql://user:password@localhost:5432/huddly_test',
+      REDIS_PUBSUB_URL: 'redis://localhost:6379/0',
+      REDIS_STATE_URL: 'redis://localhost:6379/1',
+      JWT_SECRET: 'replace-me-with-openssl-rand-hex-32-character-test-key',
       CORS_ORIGINS: 'https://huddly.app, https://app.huddly.app',
       LIVEKIT_URL: 'https://livekit.huddly.app',
-      LIVEKIT_API_KEY: 'API_KEY_123',
-      LIVEKIT_API_SECRET: 'API_SECRET_456',
+      LIVEKIT_API_KEY: 'test-livekit-api-key-identifier',
+      LIVEKIT_API_SECRET: 'test-livekit-api-secret-key-material',
     });
 
     expect(custom.NODE_ENV).toBe('production');
     expect(custom.PORT).toBe(8080);
     expect(custom.WS_PORT).toBe(8081);
-    expect(custom.DATABASE_URL).toBe('postgresql://user:pass@prod-db:5432/huddly_prod');
+    expect(custom.DATABASE_URL).toBe('postgresql://user:password@localhost:5432/huddly_test');
     expect(custom.CORS_ORIGINS).toEqual(['https://huddly.app', 'https://app.huddly.app']);
     expect(custom.LIVEKIT_URL).toBe('https://livekit.huddly.app');
   });
