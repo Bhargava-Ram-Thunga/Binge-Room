@@ -13,7 +13,7 @@ Every subsystem in Huddly maps directly into one of four architectural layers:
 ```mermaid
 graph TD
     subgraph L1["1. Content Layer (Client Execution)"]
-        A1["DOM Media Elements (<video>)"]
+        A1["DOM Media Elements (HTML5 Video)"]
         A2["@huddly/site-adapters (IVideoAdapter)"]
         A3["MediaIdentity & Shadow DOM HUD"]
     end
@@ -48,7 +48,7 @@ graph TD
 
 - **Responsibility:** Interfacing with the host browser's media player and rendering the in-page user interface.
 - **Core Components:**
-  - **`<video>` / Web Players:** Native HTML5 media elements on any website.
+  - **HTML5 Video / Web Players:** Native media elements on any website.
   - **`@huddly/site-adapters` ([ADR-012](file:///Users/bhargavaramthunga/Projects/Huddly/docs/adr/ADR-012-adapter-architecture.md)):** Unified 9-verb player abstraction (`detect`, `getMedia`, `getState`, `play`, `pause`, `seek`, `setRate`, `navigate`, `destroy`) with 4-gate anti-echo protection.
   - **In-Page Watch-Party HUD ([ADR-010](file:///Users/bhargavaramthunga/Projects/Huddly/docs/adr/ADR-010-extension-architecture.md)):** Floating React UI rendered in an Open Shadow DOM host (`<huddly-hud-host>`) with dynamic fullscreen reparenting.
 
@@ -83,8 +83,8 @@ graph TD
 ```mermaid
 graph TB
     subgraph Clients["Client Runtimes"]
-        EXT["Browser Extension (Chrome MV3 / Firefox)<br>• Keep-Alive SW Hub<br>• Shadow DOM HUD<br>• Site Adapter"]
-        WEB["Web Companion App (React 19 + Vite)<br>• Web Player View<br>• LiveKit Audio Bridge<br>• Room Join Flow"]
+        EXT["Browser Extension (Chrome MV3 / Firefox)<br/>• Keep-Alive SW Hub<br/>• Shadow DOM HUD<br/>• Site Adapter"]
+        WEB["Web Companion App (React 19 + Vite)<br/>• Web Player View<br/>• LiveKit Audio Bridge<br/>• Room Join Flow"]
     end
 
     subgraph Edge["Ingress & Edge Layer"]
@@ -92,19 +92,19 @@ graph TB
     end
 
     subgraph Backend["Huddly Backend Services"]
-        API["REST API Service (services/api:3000)<br>• Fastify + JWT Auth<br>• Room Lifecycle & Invites<br>• Ticket Minting (/tickets/ws)"]
-        RT["Realtime Sync Gateway (services/realtime:3001)<br>• Fastify WebSocket Server<br>• Pre-Upgrade Ticket Verification<br>• 64KB Frame & 25msg/s Rate Limiter<br>• NTP-Lite Clock Probe Responders"]
-        WORKER["Background Audit Worker<br>• Async Playback Audit Logger<br>• Inactivity Expiration Sweep"]
+        API["REST API Service (services/api:3000)<br/>• Fastify + JWT Auth<br/>• Room Lifecycle and Invites<br/>• Ticket Minting (/tickets/ws)"]
+        RT["Realtime Sync Gateway (services/realtime:3001)<br/>• Fastify WebSocket Server<br/>• Pre-Upgrade Ticket Verification<br/>• 64KB Frame and 25msg/s Rate Limiter<br/>• NTP-Lite Clock Probe Responders"]
+        WORKER["Background Audit Worker<br/>• Async Playback Audit Logger<br/>• Inactivity Expiration Sweep"]
     end
 
     subgraph MediaSFU["Media Communication Infrastructure"]
-        LIVEKIT["LiveKit SFU (WebRTC Audio Engine)<br>• Room Audio Mesh<br>• Active Speaker Detection"]
+        LIVEKIT["LiveKit SFU (WebRTC Audio Engine)<br/>• Room Audio Mesh<br/>• Active Speaker Detection"]
     end
 
     subgraph DataPlane["Data & State Plane"]
-        REDIS_PUBSUB[("Redis DB 0: Pub/Sub<br>• room:UUID Event Fanout<br>• Cross-Gateway Cluster Sync")]
-        REDIS_STATE[("Redis DB 1: State & Auth<br>• Single-Use WS Tickets (60s TTL)<br>• Rate Limiting Buckets")]
-        POSTGRES[("PostgreSQL 16 Database<br>• Users & Guest Profiles<br>• Rooms & RoomSettings<br>• RoomMemberships<br>• PlaybackState & Audit Logs")]
+        REDIS_PUBSUB[("Redis DB 0: Pub/Sub<br/>• room:UUID Event Fanout<br/>• Cross-Gateway Cluster Sync")]
+        REDIS_STATE[("Redis DB 1: State and Auth<br/>• Single-Use WS Tickets (60s TTL)<br/>• Rate Limiting Buckets")]
+        POSTGRES[("PostgreSQL 16 Database<br/>• Users and Guest Profiles<br/>• Rooms and RoomSettings<br/>• RoomMemberships<br/>• PlaybackState and Audit Logs")]
     end
 
     EXT -->|HTTPS REST| LB
@@ -183,7 +183,7 @@ sequenceDiagram
     Host->>GatewayA: WS: PLAYBACK_PAUSE { mediaId, position: 42.5 }
     GatewayA->>GatewayA: Verify Host authority & increment revision (rev: 11)
 
-    par Immediate Realtime Broadcast (< 5ms)
+    par Immediate Realtime Broadcast (sub-5ms)
         GatewayA->>RedisPubSub: PUBLISH room:UUID { type: "PLAYBACK_PAUSED", pos: 42.5, rev: 11 }
         RedisPubSub->>GatewayB: Fanout to subscribed gateway instances
         GatewayB-->>Participant: WS: PLAYBACK_PAUSED { pos: 42.5, rev: 11 }
