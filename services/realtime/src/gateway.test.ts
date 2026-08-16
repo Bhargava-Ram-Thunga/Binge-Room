@@ -214,4 +214,44 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
 
     ws.close();
   });
+
+  it('enforces per-socket rate limiting when message threshold is exceeded', async () => {
+    const ticket = randomUUID();
+    const roomId = '9c858901-8a57-4791-81fe-4c455b099bc9';
+    const userId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
+    mockRedisState.store.set(
+      `ticket:${ticket}`,
+      JSON.stringify({
+        userId,
+        displayName: 'Host_User',
+        roomId,
+        memberId: 'member-1',
+        role: 'HOST',
+      }),
+    );
+
+    const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws?ticket=${ticket}`);
+
+    await new Promise<void>((resolve) => {
+      ws.once('message', () => resolve()); // Ignore initial snapshot
+    });
+
+    const rateLimitPromise = new Promise<{ error: string }>((resolve) => {
+      ws.on('message', (data) => {
+        const parsed = JSON.parse(data.toString());
+        if (parsed.error === 'RATE_LIMITED') resolve(parsed);
+      });
+    });
+
+    // Spam 30 probe messages rapidly
+    for (let i = 0; i < 30; i++) {
+      ws.send(JSON.stringify({ type: 'CLOCK_SYNC_PROBE', t1: Date.now() }));
+    }
+
+    const res = await rateLimitPromise;
+    expect(res.error).toBe('RATE_LIMITED');
+
+    ws.close();
+  });
 });

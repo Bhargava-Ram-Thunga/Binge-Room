@@ -22,6 +22,7 @@ export interface AuthenticatedClientContext {
 export interface GatewayState {
   roomSockets: Map<string, Set<WebSocket>>;
   socketContexts: Map<WebSocket, AuthenticatedClientContext>;
+  socketRateLimits: Map<WebSocket, { count: number; resetAt: number }>;
   roomRevisions: Map<string, number>;
 }
 
@@ -30,7 +31,12 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
     logger: process.env.NODE_ENV === 'test' ? false : { level: 'info' },
   });
 
-  await app.register(websocket);
+  // Register WebSocket plugin with 64KB maxPayload limit to prevent large frame attacks
+  await app.register(websocket, {
+    options: {
+      maxPayload: 64 * 1024,
+    },
+  });
 
   const redisPubSub = opts?.redisPubSub || new Redis(config.REDIS_PUBSUB_URL);
   const redisSub = redisPubSub.duplicate();
@@ -39,6 +45,7 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
   const state: GatewayState = {
     roomSockets: new Map(),
     socketContexts: new Map(),
+    socketRateLimits: new Map(),
     roomRevisions: new Map(),
   };
 
@@ -148,6 +155,25 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
     // Handle Incoming WebSocket Messages
     socket.on('message', async (data: Buffer | string) => {
       const receiveTime = Date.now();
+
+      // Per-socket sliding window rate limiting (max 25 msgs/second)
+      let limiter = state.socketRateLimits.get(socket);
+      if (!limiter || receiveTime > limiter.resetAt) {
+        limiter = { count: 1, resetAt: receiveTime + 1000 };
+        state.socketRateLimits.set(socket, limiter);
+      } else {
+        limiter.count += 1;
+        if (limiter.count > 25) {
+          socket.send(
+            JSON.stringify({
+              error: 'RATE_LIMITED',
+              message: 'Rate limit exceeded: maximum 25 events per second.',
+            }),
+          );
+          return;
+        }
+      }
+
       let rawMsg: Record<string, unknown>;
       try {
         rawMsg = JSON.parse(data.toString());
@@ -217,6 +243,7 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
     // Cleanup on disconnect
     socket.on('close', async () => {
       state.socketContexts.delete(socket);
+      state.socketRateLimits.delete(socket);
       const roomSet = state.roomSockets.get(roomId);
       if (roomSet) {
         roomSet.delete(socket);
