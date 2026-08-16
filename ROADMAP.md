@@ -45,7 +45,7 @@ Chrome + Firefox extension, web client, room create/join via link, generic HTML5
 - Tooling: pnpm workspaces, Turborepo, TypeScript strict, ESLint, Prettier, commit hooks, conventional commits.
 - CI (GitHub Actions): lint, typecheck, unit tests, build on every PR.
 - Vitest + Playwright harnesses; Docker Compose for Postgres + Redis; env management.
-- Core documentation: README, ARCHITECTURE, SECURITY, CODE_OF_CONDUCT.
+- Core documentation: README, ARCHITECTURE, SECURITY.
 
 **Exit gate:** green CI on a trivial end-to-end "hello room" package graph.
 

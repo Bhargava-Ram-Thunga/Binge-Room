@@ -162,11 +162,10 @@ pnpm lint
 
 ## Project Status & Contribution Policy
 
-Huddly is currently an active **personal project**.
+Huddly is currently an active **personal project** by @Bhargava-Ram-Thunga and collaborators.
 
 - **No External Pull Requests:** We are not accepting pull requests, feature proposals, or code contributions from outside collaborators at this time.
-- **Development Process:** All development is carried out by the repository owner following the strict branch protection and conventional commit rules on `dev`.
-- **Code of Conduct:** Our [Code of Conduct](CODE_OF_CONDUCT.md) applies to all community interactions and issue discussions.
+- **Development Process:** All development is carried out internally following the strict branch protection and conventional commit rules on `dev`.
 
 ---
 
