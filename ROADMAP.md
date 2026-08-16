@@ -1,6 +1,6 @@
 # Huddly Roadmap
 
-> **Huddly is an open-source realtime layer for being together on the web.**
+> **Huddly is a realtime layer for being together on the web.**
 > It synchronizes the experience, not the screen.
 
 This roadmap turns the master specification into an ordered, end-to-end execution plan. Each phase has a goal, key deliverables, and an exit gate. Phases map to GitHub milestones (M0–M12).
@@ -9,7 +9,7 @@ This roadmap turns the master specification into an ordered, end-to-end executio
 
 ## Guiding constraints
 
-- **Solo developer first, community later** — modular monolith, one repo, no premature microservices.
+- **Lean foundation** — modular monolith, one repo, no premature microservices.
 - **State, not pixels** — the server distributes playback commands, timestamps, and room state; never the media itself.
 - **Graceful degradation** — DRM/uncontrollable sites degrade to manual sync or (later) fallback modes; never bypass protections.
 - **Every phase ships something testable.** A feature is done only with tests, error handling, docs, and acceptance criteria met.

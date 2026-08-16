@@ -1,21 +1,20 @@
-# Next Session — agent handoff
+# Next Session — Handoff Document
 
-Living handoff for whichever agent/IDE picks up the work (Claude Code,
-Antigravity, Cursor…). **Update the "Now" section at the end of every session.**
+Living handoff document for active development. **Update the "Now" section at the end of every session.**
 
-Last updated: 17 Aug 2026, after completing ARCH-009 (ADR-010..012), FOUND-013 (ARCHITECTURE.md), and personal project policy configuration.
+Last updated: 17 Aug 2026, after completing ARCH-009 (ADR-010..012), FOUND-013 (ARCHITECTURE.md), and repository normalization.
 
 ---
 
 ## 1. What Huddly is
 
-Huddly is an active **personal project** by @Bhargava-Ram-Thunga — a real-time watch-together platform. Everyone watches in **their own browser**; the server synchronizes **playback state, not pixels**. Browser extension + Node/TypeScript backend. Read [ROADMAP.md](../../ROADMAP.md) and [release-plan.md](release-plan.md) before starting.
+Huddly is a real-time watch-together platform. Everyone watches in **their own browser**; the server synchronizes **playback state, not pixels**. Browser extension + Node/TypeScript backend. Read [ROADMAP.md](../../ROADMAP.md) and [release-plan.md](release-plan.md) before starting.
 
 ## 2. Repo state (as of this handoff)
 
 |                |                                                                                                                |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| Repo           | `Bhargava-Ram-Thunga/Huddly` (personal project, Apache-2.0)                                                    |
+| Repo           | `Bhargava-Ram-Thunga/Huddly` (Apache-2.0)                                                                      |
 | Default branch | `dev`                                                                                                          |
 | Branches       | `dev` → `main` → `prod` only. All three protected.                                                             |
 | Stack          | pnpm workspaces + Turborepo + TypeScript strict + Vitest                                                       |

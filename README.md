@@ -6,7 +6,7 @@
 
 **Watch together. Talk together. Stay on your own screen.**
 
-An open-source realtime layer for being together on the web.<br />
+A realtime layer for being together on the web.<br />
 Huddly synchronizes the **playback experience**, not the pixels.
 
   <br />
@@ -19,7 +19,7 @@ Huddly synchronizes the **playback experience**, not the pixels.
 
   <br />
 
-> 🔒 **Personal Project** — Huddly is currently an active personal project. Nothing is installable yet. External contributions and pull requests are not being accepted at this time. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
+> 🚧 **Early development** — Nothing is installable yet; external pull requests are not being accepted at this time. First alpha targeted for 12 Dec 2026; see the [Release Plan](docs/process/release-plan.md).
 
   <br />
 
@@ -160,12 +160,12 @@ pnpm lint
 
 ---
 
-## Project Status & Contribution Policy
+## Project Status & Repository Policy
 
-Huddly is currently an active **personal project** by @Bhargava-Ram-Thunga and collaborators.
+Huddly is currently in active development under standard repository access controls.
 
-- **No External Pull Requests:** We are not accepting pull requests, feature proposals, or code contributions from outside collaborators at this time.
-- **Development Process:** All development is carried out internally following the strict branch protection and conventional commit rules on `dev`.
+- **No External Pull Requests:** We are not accepting pull requests, feature proposals, or issues from outside collaborators at this time.
+- **Development Process:** All development follows the strict branch protection and conventional commit rules on `dev`.
 
 ---
 
