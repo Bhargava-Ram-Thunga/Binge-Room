@@ -3,30 +3,27 @@
 Living handoff for whichever agent/IDE picks up the work (Claude Code,
 Antigravity, Cursor…). **Update the "Now" section at the end of every session.**
 
-Last updated: 15 Aug 2026, after completing ARCH-014, ARCH-010, and ARCH-011.
+Last updated: 17 Aug 2026, after completing ARCH-009 (ADR-010..012), FOUND-013 (ARCHITECTURE.md), and personal project policy configuration.
 
 ---
 
 ## 1. What Huddly is
 
-Open-source watch-together platform. Everyone watches in **their own browser**;
-the server synchronizes **playback state, not pixels**. Browser extension +
-Node/TypeScript backend. Read [ROADMAP.md](../../ROADMAP.md) and
-[release-plan.md](release-plan.md) before starting.
+Huddly is an active **personal project** by @Bhargava-Ram-Thunga — a real-time watch-together platform. Everyone watches in **their own browser**; the server synchronizes **playback state, not pixels**. Browser extension + Node/TypeScript backend. Read [ROADMAP.md](../../ROADMAP.md) and [release-plan.md](release-plan.md) before starting.
 
 ## 2. Repo state (as of this handoff)
 
-|                |                                                                             |
-| -------------- | --------------------------------------------------------------------------- |
-| Repo           | `Bhargava-Ram-Thunga/Huddly` (public, Apache-2.0)                           |
-| Default branch | `dev`                                                                       |
-| Branches       | `dev` → `main` → `prod` only. All three protected.                          |
-| Stack          | pnpm workspaces + Turborepo + TypeScript strict + Vitest                    |
-| Packages       | `packages/protocol`, `packages/sync-engine` (seeded, validated, tested)     |
-| Specs          | `docs/MVP.md`, `docs/protocol/v1.md`, `docs/database/schema-v1.md` (frozen) |
-| Missing        | `apps/`, `services/` — declared in workspace, not created yet               |
-| Board          | Project #3 "Huddly Roadmap", fully automated                                |
-| Milestones     | M0…M12, due dates set. **M0 due 30 Aug 2026.**                              |
+|                |                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Repo           | `Bhargava-Ram-Thunga/Huddly` (personal project, Apache-2.0)                                                    |
+| Default branch | `dev`                                                                                                          |
+| Branches       | `dev` → `main` → `prod` only. All three protected.                                                             |
+| Stack          | pnpm workspaces + Turborepo + TypeScript strict + Vitest                                                       |
+| Packages       | `@huddly/protocol`, `@huddly/sync-engine`, `@huddly/config`, `@huddly/database`, `@huddly/ui`                  |
+| Services       | `services/api` (Fastify REST), `services/realtime` (Fastify WebSocket Gateway)                                 |
+| Specs & Docs   | `ARCHITECTURE.md`, `docs/MVP.md`, `docs/protocol/v1.md`, `docs/database/schema-v1.md`, `docs/adr/ADR-010..013` |
+| Board          | Project #3 "Huddly Roadmap" (4 columns: Backlog, In Progress, In Review, Done)                                 |
+| Milestones     | M0…M12, due dates set. **M0 due 30 Aug 2026.**                                                                 |
 
 ## 3. Non-negotiable working rules
 
@@ -38,10 +35,8 @@ Branch protection **will** reject violations. Follow exactly:
    e.g. `docs/protocol-v1`, `feat/room-service`.
 3. **PR title** must be conventional commits:
    `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(scope\))?!?: .+`
-4. **PR base is `dev`.** Never open a PR straight to `main`/`prod`; the "Merge
-   target" check enforces `feature → dev → main → prod`.
-5. **Link the issue** with `Closes #NN` in the PR body — board automation depends
-   on it.
+4. **PR base is `dev`.** Never open a PR straight to `main`/`prod`; the "Merge target" check enforces `feature → dev → main → prod`.
+5. **Link the issue** with `Closes #NN` in the PR body — board automation depends on it.
 6. Before pushing, these must pass locally:
 
    ```bash
@@ -59,53 +54,31 @@ Required checks on every PR: `CI passed`, `Secret scan (gitleaks)`,
 ## 4. The board runs itself
 
 Do **not** drag cards. Automation (see [board-automation.md](board-automation.md))
-moves them: PR opened → Code Review, merged to `dev` → Testing, staging deploy
-green → QA / UAT Sign-off, `main` → Ready for Release, prod deploy → Done.
+moves them: PR opened → In Review, merged to `dev` → Done.
 
-## 5. NOW — Next Steps for M0 / M1
+## 5. NOW — Current Progress & Next Steps
 
-M0 Core Specifications completed:
+### Completed Milestones & Issues:
 
 - [x] **ARCH-014 MVP scope freeze (#50)** $\to$ [`docs/MVP.md`](../MVP.md) merged.
-- [x] **ARCH-010 Protocol v1 (#46)** $\to$ [`docs/protocol/v1.md`](../protocol/v1.md) + `@huddly/protocol` envelope/payload Zod validators and tests merged.
+- [x] **ARCH-010 Protocol v1 (#46)** $\to$ [`docs/protocol/v1.md`](../protocol/v1.md) + `@huddly/protocol` envelope/payload Zod validators merged.
 - [x] **ARCH-011 Database schema v1 (#47)** $\to$ [`docs/database/schema-v1.md`](../database/schema-v1.md) with full ERD merged.
+- [x] **ARCH-009 ADR-010..012 (#45)** $\to$ [ADR-010](../adr/ADR-010-extension-architecture.md), [ADR-011](../adr/ADR-011-sync-algorithm.md), [ADR-012](../adr/ADR-012-adapter-architecture.md) merged.
+- [x] **FOUND-013 System Architecture Overview (#64)** $\to$ [`ARCHITECTURE.md`](../../ARCHITECTURE.md) merged.
+- [x] **FOUND-014 Security & Code of Conduct (#65)** $\to$ `SECURITY.md`, `CODE_OF_CONDUCT.md` merged.
+- [x] **FOUND-009 Docker Compose Dev Environment (#60)** $\to$ Root `docker-compose.yml` (Postgres 16 + Redis 7) merged.
+- [x] **FOUND-010 Typed Environment Management (#61)** $\to$ `@huddly/config` with Zod validation merged.
+- [x] **FOUND-001 Backend Service Initialization (#52)** $\to$ `services/api`, `services/realtime`, `@huddly/database` merged.
 
-### Immediate Next Tasks (Dependency Order)
+### Immediate Next Tasks (Backlog):
 
-#### Task 1 — ADR Sets & Threat Model (M0 Completion)
+1. **`DESIGN-003` (#84)**: UI kit — design tokens and shared React 19 cinema components in `packages/ui` (`Button`, `Badge`, `GlassCard`, `InviteModal`, `ChatDrawer`, `VideoControls`, `ParticipantAvatar`, `ThemeToggle`).
+2. **`FOUND-008` (#59)**: Playwright E2E harness (multi-context two-client foundation).
+3. **`ARCH-007` (#43)**: ADR-004..006 — PostgreSQL, Redis boundaries, WebSockets.
+4. **`ARCH-006` (#42)**: ADR-001..003 — WebRTC, SFU topology, LiveKit vs mediasoup.
+5. **`ARCH-005` (#41)**: Threat model v1 — rooms, events, extension, chat, media.
 
-- **ARCH-006 (#42)**: ADR-001..003 — WebRTC, SFU topology, LiveKit vs mediasoup
-- **ARCH-007 (#43)**: ADR-004..006 — PostgreSQL, Redis boundaries, WebSockets
-- **ARCH-008 (#44)**: ADR-007..009 — TypeScript everywhere, modular monolith, monorepo
-- **ARCH-009 (#45)**: ADR-010..012 — Extension architecture, sync algorithm, adapter architecture
-- **ARCH-005 (#41)**: Threat model v1 — rooms, events, extension, chat, media
-
-#### Task 2 — Monorepo & Infrastructure Foundation (Phase 1 / M1)
-
-- **FOUND-001 (#52)**: Scaffold `apps/` (extension, web) and `services/` (api, realtime).
-- **FOUND-009 (#60)**: Docker Compose dev environment (Postgres + Redis).
-- **FOUND-010 (#61)**: Typed environment/config management.
-
-## 6. Paste-ready prompt for another agent
-
-> Read `docs/process/next-session.md` in this repo and follow it exactly.
-> Check Section 5 "NOW" for the current task list. For each task: create the named
-> feature branch, do the work, run `pnpm lint && pnpm typecheck && pnpm test` plus
-> `npx markdownlint-cli2`, commit with a conventional-commit message, push, and
-> open a PR based on `dev` with `Closes #NN` in the body. Do not commit directly
-> to `dev`/`main`/`prod`. Stop and ask before any production deployment.
-
-## 7. Known issues to fix sometime
-
-- **Board rule conflict**: `S16` (issue closed → Done) races with the release
-  train, so an issue closed by a merge can land in QA/UAT or Done depending on
-  timing. Fix: only apply S16 when the issue is closed _without_ a merged PR.
-- **#57 (CI) is closed but incomplete** — Turbo `lint` task and branch-protection
-  notes were never finished. Reopen or file a follow-up.
-- **No production smoke tests** in `cd.yml`; add with rollback when real deploys land.
-- `FOUND-001` is only partly done: `apps/` and `services/` don't exist yet.
-
-## 8. Human-only actions (never automate)
+## 6. Human-only actions (never automate)
 
 Approving production deployments · store submissions · account creation ·
 buying domains · handling tokens/secrets · legal sign-off.
@@ -116,5 +89,5 @@ buying domains · handling tokens/secrets · legal sign-off.
 
 - [x] All PRs merged or explicitly parked
 - [x] `dev` green
-- [x] Board reflects reality
+- [x] Board reflects reality (4 columns: Backlog, In Progress, In Review, Done)
 - [x] **Section 5 "NOW" rewritten for the next session**

@@ -9,57 +9,33 @@ implements it; `.github/scripts/board-sync.sh` and `board-sweep.sh` do the work.
 
 ## Status columns
 
-`Backlog → Research → Ready → In Progress → Blocked → Code Review → Testing →
-QA / UAT Sign-off → Ready for Release → Done`
+`Backlog → In Progress → In Review → Done`
 
 ## Scenario matrix
 
-| #   | Trigger (what happens)                                 | Board reaction                                           |
-| --- | ------------------------------------------------------ | -------------------------------------------------------- |
-| S1  | Issue opened                                           | Added to board → **Backlog**                             |
-| S2  | Issue labeled `status:needs-research` / `needs-design` | → **Research**                                           |
-| S3  | Issue labeled `status:ready`                           | → **Ready**                                              |
-| S4  | Issue labeled `status:blocked`                         | → **Blocked**                                            |
-| S5  | Label `status:blocked` removed                         | → **Ready**                                              |
-| S6  | Issue assigned to someone                              | → **In Progress**                                        |
-| S7  | Draft PR opened                                        | PR + its linked issues → **In Progress**                 |
-| S8  | PR marked ready for review                             | PR + linked issues → **Code Review**                     |
-| S9  | Review requests changes                                | → **In Progress**                                        |
-| S10 | PR converted back to draft                             | → **In Progress**                                        |
-| S11 | PR closed without merging                              | → **Backlog**                                            |
-| S12 | PR merged into `dev`                                   | PR + linked issues → **Testing**                         |
-| S13 | Staging deploy succeeds (CD on `dev`)                  | Sweep: everything in **Testing** → **QA / UAT Sign-off** |
-| S14 | PR merged into `main` (release candidate)              | PR + linked issues → **Ready for Release**               |
-| S15 | Production deploy succeeds (CD on `prod`)              | Sweep: everything in **Ready for Release** → **Done**    |
-| S16 | Issue closed                                           | → **Done**                                               |
-| S17 | Issue reopened                                         | → **Backlog**                                            |
-
-### Why sweeps for S13/S15
-
-Deployments are release trains, not per-issue events: a staging deploy validates
-everything merged since the last one. So deploy success moves the whole column
-forward rather than trying to map a deployment back to individual issues.
-
-**QA / UAT Sign-off is deliberately manual on the way out.** Automation moves
-cards _into_ that column; a human moves them out (or promotes `dev` → `main`,
-which triggers S14). That is the sign-off gate.
+| #   | Trigger (what happens)      | Board reaction                           |
+| --- | --------------------------- | ---------------------------------------- |
+| S1  | Issue opened                | Added to board → **Backlog**             |
+| S2  | Issue assigned to developer | → **In Progress**                        |
+| S3  | Draft PR opened             | PR + its linked issues → **In Progress** |
+| S4  | PR marked ready for review  | PR + linked issues → **In Review**       |
+| S5  | Review requests changes     | → **In Progress**                        |
+| S6  | PR converted back to draft  | → **In Progress**                        |
+| S7  | PR closed without merging   | → **Backlog**                            |
+| S8  | PR merged into `dev`        | PR + linked issues → **Done**            |
+| S9  | Issue closed                | → **Done**                               |
+| S10 | Issue reopened              | → **Backlog**                            |
 
 ## Flow through the pipeline
 
 ```text
-issue opened ──→ Backlog ──(label)──→ Research/Ready ──(assign)──→ In Progress
-                                                                      │
-                                                          draft PR ───┘
-                                                                      │
-                                                    ready for review ──→ Code Review
-                                                                      │
-                                                        merge to dev ──→ Testing
-                                                                      │
-                                              staging deploy green ────→ QA / UAT Sign-off
-                                                                      │
-                                              promote dev → main ──────→ Ready for Release
-                                                                      │
-                                          production deploy green ─────→ Done
+issue opened ──→ Backlog ──(assign / start work)──→ In Progress
+                                                       │
+                                           draft PR ───┘
+                                                       │
+                                     ready for review ──→ In Review
+                                                       │
+                                         merge to dev ──→ Done
 ```
 
 ## Setup requirement — `PROJECT_TOKEN`
@@ -87,6 +63,6 @@ These GitHub-native automations complement the Actions above and cost nothing:
 ## Board field conventions
 
 - **Status** — owned by automation (this document).
-- **Phase / Priority / Difficulty** — set by humans at triage; never automated.
+- **Phase / Priority / Difficulty** — set at triage; never automated.
 - Labels remain the source of truth for `type:*` and `area:*`; the board mirrors
   them for filtering.
