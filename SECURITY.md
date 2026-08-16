@@ -1,58 +1,23 @@
 # Security Policy
 
-## Supported Versions
+## Current Status
 
-Huddly is currently in active development. Security updates are applied directly to the `dev` and `main` branches.
+Huddly is currently in early active development (pre-alpha) and is not deployed for public production use. Security hardening and architectural boundaries are implemented directly on the `dev` branch.
 
-| Version       | Supported          | Status             |
-| :------------ | :----------------- | :----------------- |
-| `0.1.x` (dev) | :white_check_mark: | Active Development |
-| `< 0.1.0`     | :x:                | Unsupported        |
-
----
-
-## Reporting a Vulnerability
-
-We take the security of Huddly and our users seriously. If you believe you have discovered a security vulnerability in Huddly, please report it responsibly by following the steps below.
-
-### 1. How to Report
-
-**Please do not report security vulnerabilities through public GitHub issues.**
-
-Instead, please report security issues through one of the following channels:
-
-- **GitHub Security Advisory**: Open a private draft security advisory under the repository's [Security tab](https://github.com/Bhargava-Ram-Thunga/Huddly/security/advisories/new).
-- **Direct Email**: Send encrypted or plain-text details to [bhargavaramthunga@gmail.com](mailto:bhargavaramthunga@gmail.com) with the subject prefix `[SECURITY REPORT]`.
-
-### 2. Information to Include
-
-To help us investigate and remediate the issue promptly, please include:
-
-- A clear description of the vulnerability and its potential impact.
-- Step-by-step reproduction steps or a minimal proof-of-concept.
-- Affected components (e.g., `@huddly/realtime`, `@huddly/api`, `@huddly/protocol`).
-- Any proposed mitigations or remediations if known.
+| Branch | Status             | Security Updates       |
+| :----- | :----------------- | :--------------------- |
+| `dev`  | Active Development | Continuous integration |
+| `main` | Release Candidate  | Staged releases        |
+| `prod` | Production         | Planned                |
 
 ---
 
-## Response & Remediation SLA
+## Automated Security Controls
 
-When a security vulnerability is reported, the project maintainers commit to:
+The codebase implements continuous automated security enforcement across the development pipeline:
 
-1. **Initial Acknowledgment**: Within **48 hours** of report receipt.
-2. **Triage & Assessment**: Within **72 hours** to confirm severity and reproduction.
-3. **Remediation & Patch**:
-   - **Critical / High Severity**: Patch developed and released within **7 calendar days**.
-   - **Medium / Low Severity**: Patch released in the next planned minor release.
-4. **Public Disclosure**: Coordinated disclosure with the reporter after patches are validated.
-
----
-
-## Automated Security Protections
-
-The Huddly repository enforces automated defensive security controls:
-
-- **Secret Scanning**: Gitleaks and GitHub Secret Scanning with Push Protection are enabled across all branches.
-- **Dependency Scanning**: Dependabot automated weekly vulnerability monitoring and grouped updates.
-- **Static Analysis (SAST)**: GitHub CodeQL analysis active on pull requests.
-- **Input Validation**: Strict schema validation via Zod across all network envelopes and REST endpoints.
+- **Secret Scanning**: Gitleaks runs on every pull request; push protection prevents credentials from entering history.
+- **Dependency Auditing**: Automated dependency vulnerability scanning and regular automated patch integration.
+- **Static Analysis (SAST)**: GitHub CodeQL security analysis runs on every pull request.
+- **Input Validation**: Strict runtime schema validation using Zod on all WebSocket envelopes, REST payloads, and query parameters.
+- **Data Protection**: Cryptographic room token verification, scoped Redis channel isolation, and GDPR-compliant soft-deletion architecture.
