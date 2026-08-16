@@ -65,7 +65,7 @@ moves them: PR opened → In Review, merged to `dev` → Done.
 - [x] **ARCH-011 Database schema v1 (#47)** $\to$ [`docs/database/schema-v1.md`](../database/schema-v1.md) with full ERD merged.
 - [x] **ARCH-009 ADR-010..012 (#45)** $\to$ [ADR-010](../adr/ADR-010-extension-architecture.md), [ADR-011](../adr/ADR-011-sync-algorithm.md), [ADR-012](../adr/ADR-012-adapter-architecture.md) merged.
 - [x] **FOUND-013 System Architecture Overview (#64)** $\to$ [`ARCHITECTURE.md`](../../ARCHITECTURE.md) merged.
-- [x] **FOUND-014 Security & Code of Conduct (#65)** $\to$ `SECURITY.md`, `CODE_OF_CONDUCT.md` merged.
+- [x] **FOUND-014 Security Policy (#65)** $\to$ `SECURITY.md` and realtime rate-limiting merged.
 - [x] **FOUND-009 Docker Compose Dev Environment (#60)** $\to$ Root `docker-compose.yml` (Postgres 16 + Redis 7) merged.
 - [x] **FOUND-010 Typed Environment Management (#61)** $\to$ `@huddly/config` with Zod validation merged.
 - [x] **FOUND-001 Backend Service Initialization (#52)** $\to$ `services/api`, `services/realtime`, `@huddly/database` merged.
