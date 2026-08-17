@@ -108,6 +108,7 @@ model Room {
   chatMessages      ChatMessage[]
   auditEvents       AuditEvent[]
 
+  @@index([hostUserId])
   @@map("rooms")
 }
 
