@@ -25,6 +25,8 @@ describe('@huddly/database Client & Schema Verification (AUTH-001)', () => {
     expect(prisma.room).toBeDefined();
     expect(typeof prisma.room.create).toBe('function');
     expect(prisma.roomMember).toBeDefined();
+    expect(prisma.roomPermission).toBeDefined();
     expect(prisma.playbackState).toBeDefined();
+    expect(prisma.playbackEvent).toBeDefined();
   });
 });
