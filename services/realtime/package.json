@@ -21,7 +21,7 @@
     "@huddly/protocol": "workspace:*",
     "@huddly/sync-engine": "workspace:*",
     "fastify": "^5.2.1",
-    "ioredis": "^5.5.0",
+    "ioredis": "^6.0.0",
     "ws": "^8.18.0",
     "zod": "^4.4.3"
   },
