@@ -8,4 +8,5 @@ allowBuilds:
   esbuild: true
   prisma: true
   '@prisma/client': true
+  argon2: true
   '@prisma/engines': true

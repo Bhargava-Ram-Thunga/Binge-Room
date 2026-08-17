@@ -4,9 +4,22 @@ import { buildApp } from './server.js';
 
 interface MockUser {
   id: string;
+  email: string | null;
+  passwordHash: string | null;
   displayName: string;
+  avatarUrl: string | null;
   isGuest: boolean;
   status: string;
+  createdAt: Date;
+}
+
+interface MockUserDevice {
+  id: string;
+  userId: string;
+  deviceType: string;
+  userAgent: string | null;
+  refreshTokenHash: string | null;
+  lastSeenAt: Date;
   createdAt: Date;
 }
 
@@ -34,33 +47,96 @@ interface MockRoom {
 // Mock database calls for fast isolated unit tests
 vi.mock('@huddly/database', () => {
   const users: MockUser[] = [];
+  const devices: MockUserDevice[] = [];
   const rooms: MockRoom[] = [];
 
   return {
     prisma: {
       user: {
-        create: vi
-          .fn()
-          .mockImplementation(
-            async ({
-              data,
-            }: {
-              data: { displayName: string; isGuest?: boolean; status?: string };
-            }) => {
-              const user: MockUser = {
-                id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-                displayName: data.displayName,
-                isGuest: data.isGuest ?? false,
-                status: data.status ?? 'ACTIVE',
-                createdAt: new Date(),
+        create: vi.fn().mockImplementation(
+          async ({
+            data,
+          }: {
+            data: {
+              email?: string | null;
+              passwordHash?: string | null;
+              displayName: string;
+              avatarUrl?: string | null;
+              isGuest?: boolean;
+              status?: string;
+              devices?: {
+                create?: {
+                  deviceType?: string;
+                  userAgent?: string | null;
+                  refreshTokenHash?: string | null;
+                };
               };
-              users.push(user);
-              return user;
-            },
-          ),
-        findUnique: vi.fn().mockImplementation(async ({ where }: { where: { id: string } }) => {
-          return users.find((u) => u.id === where.id) || null;
-        }),
+            };
+          }) => {
+            const user: MockUser = {
+              id: `user-${users.length + 1}-${Date.now()}`,
+              email: data.email ?? null,
+              passwordHash: data.passwordHash ?? null,
+              displayName: data.displayName,
+              avatarUrl: data.avatarUrl ?? null,
+              isGuest: data.isGuest ?? false,
+              status: data.status ?? 'ACTIVE',
+              createdAt: new Date(),
+            };
+            users.push(user);
+
+            if (data.devices?.create) {
+              devices.push({
+                id: `device-${devices.length + 1}`,
+                userId: user.id,
+                deviceType: data.devices.create.deviceType ?? 'WEB',
+                userAgent: data.devices.create.userAgent ?? null,
+                refreshTokenHash: data.devices.create.refreshTokenHash ?? null,
+                lastSeenAt: new Date(),
+                createdAt: new Date(),
+              });
+            }
+
+            return user;
+          },
+        ),
+        findUnique: vi
+          .fn()
+          .mockImplementation(async ({ where }: { where: { id?: string; email?: string } }) => {
+            if (where.id) {
+              return users.find((u) => u.id === where.id) || null;
+            }
+            if (where.email) {
+              return users.find((u) => u.email === where.email) || null;
+            }
+            return null;
+          }),
+      },
+      userDevice: {
+        create: vi.fn().mockImplementation(
+          async ({
+            data,
+          }: {
+            data: {
+              userId: string;
+              deviceType?: string;
+              userAgent?: string | null;
+              refreshTokenHash?: string | null;
+            };
+          }) => {
+            const device: MockUserDevice = {
+              id: `device-${devices.length + 1}`,
+              userId: data.userId,
+              deviceType: data.deviceType ?? 'WEB',
+              userAgent: data.userAgent ?? null,
+              refreshTokenHash: data.refreshTokenHash ?? null,
+              lastSeenAt: new Date(),
+              createdAt: new Date(),
+            };
+            devices.push(device);
+            return device;
+          },
+        ),
       },
       room: {
         create: vi.fn().mockImplementation(
@@ -140,60 +216,225 @@ describe('REST API Service (@huddly/api)', () => {
     await app.close();
   });
 
-  it('GET /health returns 200 ok', async () => {
-    const res = await app.inject({ method: 'GET', url: '/health' });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body.status).toBe('ok');
+  describe('Healthcheck', () => {
+    it('GET /health returns 200 ok', async () => {
+      const res = await app.inject({ method: 'GET', url: '/health' });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.status).toBe('ok');
+    });
   });
 
-  it('POST /api/v1/auth/guest generates guest user and JWT', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/guest',
-      payload: { displayName: 'Bhargav' },
-    });
+  describe('Guest Authentication (AUTH-005)', () => {
+    it('POST /api/v1/auth/guest generates guest user and JWT', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/guest',
+        payload: { displayName: 'Bhargav' },
+      });
 
-    expect(res.statusCode).toBe(201);
-    const body = JSON.parse(res.body);
-    expect(body.user.displayName).toBe('Bhargav');
-    expect(body.user.isGuest).toBe(true);
-    expect(typeof body.token).toBe('string');
+      expect(res.statusCode).toBe(201);
+      const body = JSON.parse(res.body);
+      expect(body.user.displayName).toBe('Bhargav');
+      expect(body.user.isGuest).toBe(true);
+      expect(typeof body.token).toBe('string');
+    });
   });
 
-  it('POST /api/v1/rooms requires authentication', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rooms',
-      payload: { name: 'Dune Night' },
+  describe('Email/Password Registration (AUTH-002)', () => {
+    it('POST /api/v1/auth/register successfully registers a new user', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'alice@example.com',
+          password: 'Password123!',
+          displayName: 'Alice',
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = JSON.parse(res.body);
+      expect(body.user.email).toBe('alice@example.com');
+      expect(body.user.displayName).toBe('Alice');
+      expect(body.user.isGuest).toBe(false);
+      expect(body.user.passwordHash).toBeUndefined(); // Must not leak password hash
+      expect(typeof body.token).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
     });
 
-    expect(res.statusCode).toBe(401);
-    const body = JSON.parse(res.body);
-    expect(body.code).toBe('ERR_UNAUTHORIZED');
+    it('POST /api/v1/auth/register rejects duplicate email with 409 Conflict', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'ALICE@EXAMPLE.COM', // Tests case-insensitivity normalization
+          password: 'AnotherPassword123!',
+          displayName: 'Alice Duplicate',
+        },
+      });
+
+      expect(res.statusCode).toBe(409);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_EMAIL_EXISTS');
+      expect(body.status).toBe(409);
+    });
+
+    it('POST /api/v1/auth/register rejects invalid email format', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'not-an-email',
+          password: 'Password123!',
+          displayName: 'Bad Email',
+        },
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_PAYLOAD');
+    });
+
+    it('POST /api/v1/auth/register rejects short passwords (<8 chars)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'short@example.com',
+          password: 'short',
+          displayName: 'Short Pass',
+        },
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_PAYLOAD');
+    });
   });
 
-  it('POST /api/v1/rooms creates room with authenticated token', async () => {
-    // 1. Get token
-    const authRes = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/guest',
-      payload: { displayName: 'Host_User' },
-    });
-    const { token } = JSON.parse(authRes.body);
+  describe('Email/Password Login (AUTH-002)', () => {
+    it('POST /api/v1/auth/login succeeds with correct credentials', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'alice@example.com',
+          password: 'Password123!',
+        },
+      });
 
-    // 2. Create room
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/v1/rooms',
-      headers: { authorization: `Bearer ${token}` },
-      payload: { name: 'Dune Night', mediaUrl: 'https://youtube.com/watch?v=123' },
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.user.email).toBe('alice@example.com');
+      expect(body.user.displayName).toBe('Alice');
+      expect(body.user.passwordHash).toBeUndefined();
+      expect(typeof body.token).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
     });
 
-    expect(res.statusCode).toBe(201);
-    const body = JSON.parse(res.body);
-    expect(body.name).toBe('Dune Night');
-    expect(body.roomCode).toMatch(/^hud-[a-z0-9]{4}$/);
-    expect(body.playbackState.status).toBe('PAUSED');
+    it('POST /api/v1/auth/login rejects incorrect password with 401 Unauthorized', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'alice@example.com',
+          password: 'WrongPassword999!',
+        },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_CREDENTIALS');
+    });
+
+    it('POST /api/v1/auth/login rejects non-existent email with 401 Unauthorized', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'nonexistent@example.com',
+          password: 'SomePassword123!',
+        },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_CREDENTIALS');
+    });
+  });
+
+  describe('Authenticated Profile (GET /me)', () => {
+    it('GET /api/v1/auth/me returns profile for registered user', async () => {
+      const loginRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: {
+          email: 'alice@example.com',
+          password: 'Password123!',
+        },
+      });
+      const { token } = JSON.parse(loginRes.body);
+
+      const meRes = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(meRes.statusCode).toBe(200);
+      const body = JSON.parse(meRes.body);
+      expect(body.email).toBe('alice@example.com');
+      expect(body.displayName).toBe('Alice');
+      expect(body.isGuest).toBe(false);
+      expect(body.passwordHash).toBeUndefined();
+    });
+
+    it('GET /api/v1/auth/me rejects unauthenticated request with 401', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_UNAUTHORIZED');
+    });
+  });
+
+  describe('Rooms & Protected Endpoints', () => {
+    it('POST /api/v1/rooms requires authentication', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        payload: { name: 'Dune Night' },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_UNAUTHORIZED');
+    });
+
+    it('POST /api/v1/rooms creates room with authenticated token', async () => {
+      const authRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/guest',
+        payload: { displayName: 'Host_User' },
+      });
+      const { token } = JSON.parse(authRes.body);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { name: 'Dune Night', mediaUrl: 'https://youtube.com/watch?v=123' },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = JSON.parse(res.body);
+      expect(body.name).toBe('Dune Night');
+      expect(body.roomCode).toMatch(/^hud-[a-z0-9]{4}$/);
+      expect(body.playbackState.status).toBe('PAUSED');
+    });
   });
 });
