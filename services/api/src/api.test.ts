@@ -23,6 +23,14 @@ interface MockUserDevice {
   createdAt: Date;
 }
 
+interface MockRoomSettings {
+  maxParticipants: number;
+  isLocked: boolean;
+  allowGuestChat: boolean;
+  allowGuestVoice: boolean;
+  autoCloseOnHostLeave?: boolean;
+}
+
 interface MockRoom {
   id: string;
   roomCode: string;
@@ -30,12 +38,8 @@ interface MockRoom {
   hostUserId: string;
   status: string;
   createdAt: Date;
-  settings: {
-    maxParticipants: number;
-    isLocked: boolean;
-    allowGuestChat: boolean;
-    allowGuestVoice: boolean;
-  };
+  updatedAt: Date;
+  settings: MockRoomSettings;
   playbackState: {
     status: string;
     position: number;
@@ -43,6 +47,25 @@ interface MockRoom {
     revision: bigint;
   };
 }
+
+// Mock Redis
+vi.mock('ioredis', () => {
+  const store = new Map<string, string>();
+  class MockRedis {
+    async setex(key: string, _ttl: number, val: string) {
+      store.set(key, val);
+      return 'OK';
+    }
+    async quit() {
+      return 'OK';
+    }
+    on() {}
+  }
+  return {
+    Redis: MockRedis,
+    default: MockRedis,
+  };
+});
 
 // Mock database calls for fast isolated unit tests
 vi.mock('@huddly/database', () => {
@@ -148,20 +171,23 @@ vi.mock('@huddly/database', () => {
               name: string;
               hostUser: { connect: { id: string } };
               status?: string;
+              settings?: { create?: Partial<MockRoomSettings> };
             };
           }) => {
             const room: MockRoom = {
-              id: '9c858901-8a57-4791-81fe-4c455b099bc9',
+              id: `room-${rooms.length + 1}-${Date.now()}`,
               roomCode: data.roomCode,
               name: data.name,
               hostUserId: data.hostUser.connect.id,
               status: data.status ?? 'ACTIVE',
               createdAt: new Date(),
+              updatedAt: new Date(),
               settings: {
-                maxParticipants: 10,
-                isLocked: false,
-                allowGuestChat: true,
-                allowGuestVoice: true,
+                maxParticipants: data.settings?.create?.maxParticipants ?? 10,
+                isLocked: data.settings?.create?.isLocked ?? false,
+                allowGuestChat: data.settings?.create?.allowGuestChat ?? true,
+                allowGuestVoice: data.settings?.create?.allowGuestVoice ?? true,
+                autoCloseOnHostLeave: data.settings?.create?.autoCloseOnHostLeave ?? false,
               },
               playbackState: {
                 status: 'PAUSED',
@@ -174,6 +200,14 @@ vi.mock('@huddly/database', () => {
             return room;
           },
         ),
+        findUnique: vi.fn().mockImplementation(async ({ where }: { where: { id: string } }) => {
+          const found = rooms.find((r) => r.id === where.id);
+          if (!found) return null;
+          return {
+            ...found,
+            members: [{ userId: found.hostUserId, status: 'JOINED' }],
+          };
+        }),
         findFirst: vi
           .fn()
           .mockImplementation(async ({ where }: { where: { id?: string; roomCode?: string } }) => {
@@ -186,6 +220,38 @@ vi.mock('@huddly/database', () => {
               members: [],
             };
           }),
+        update: vi.fn().mockImplementation(
+          async ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: {
+              name?: string;
+              status?: string;
+              settings?: { update?: Partial<MockRoomSettings> };
+            };
+          }) => {
+            const index = rooms.findIndex((r) => r.id === where.id);
+            if (index === -1) throw new Error('Room not found');
+            const current = rooms[index]!;
+            const updated: MockRoom = {
+              ...current,
+              name: data.name ?? current.name,
+              status: data.status ?? current.status,
+              updatedAt: new Date(),
+              settings: {
+                ...current.settings,
+                ...(data.settings?.update || {}),
+              },
+            };
+            rooms[index] = updated;
+            return {
+              ...updated,
+              members: [{ userId: updated.hostUserId, status: 'JOINED' }],
+            };
+          },
+        ),
       },
       roomMember: {
         findUnique: vi.fn().mockImplementation(async () => ({
@@ -402,7 +468,27 @@ describe('REST API Service (@huddly/api)', () => {
     });
   });
 
-  describe('Rooms & Protected Endpoints', () => {
+  describe('Rooms CRUD & Permissions (ROOM-001)', () => {
+    let hostToken: string;
+    let otherToken: string;
+    let createdRoomId: string;
+
+    beforeAll(async () => {
+      const hostAuth = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/guest',
+        payload: { displayName: 'Host_User' },
+      });
+      hostToken = JSON.parse(hostAuth.body).token;
+
+      const otherAuth = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/guest',
+        payload: { displayName: 'Other_User' },
+      });
+      otherToken = JSON.parse(otherAuth.body).token;
+    });
+
     it('POST /api/v1/rooms requires authentication', async () => {
       const res = await app.inject({
         method: 'POST',
@@ -416,17 +502,10 @@ describe('REST API Service (@huddly/api)', () => {
     });
 
     it('POST /api/v1/rooms creates room with authenticated token', async () => {
-      const authRes = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/guest',
-        payload: { displayName: 'Host_User' },
-      });
-      const { token } = JSON.parse(authRes.body);
-
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/rooms',
-        headers: { authorization: `Bearer ${token}` },
+        headers: { authorization: `Bearer ${hostToken}` },
         payload: { name: 'Dune Night', mediaUrl: 'https://youtube.com/watch?v=123' },
       });
 
@@ -435,6 +514,119 @@ describe('REST API Service (@huddly/api)', () => {
       expect(body.name).toBe('Dune Night');
       expect(body.roomCode).toMatch(/^hud-[a-z0-9]{4}$/);
       expect(body.playbackState.status).toBe('PAUSED');
+      createdRoomId = body.id;
+    });
+
+    it('PATCH /api/v1/rooms/:id allows host to update settings', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/rooms/${createdRoomId}`,
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Dune Part 2', isLocked: true, maxParticipants: 20 },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.name).toBe('Dune Part 2');
+      expect(body.settings.isLocked).toBe(true);
+      expect(body.settings.maxParticipants).toBe(20);
+    });
+
+    it('PATCH /api/v1/rooms/:id forbids non-hosts from modifying settings', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/rooms/${createdRoomId}`,
+        headers: { authorization: `Bearer ${otherToken}` },
+        payload: { name: 'Hacked Room' },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_FORBIDDEN');
+    });
+
+    it('PATCH /api/v1/rooms/:id returns 404 for non-existent room', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/rooms/non-existent-room-id',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'New Name' },
+      });
+
+      expect(res.statusCode).toBe(404);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_ROOM_NOT_FOUND');
+    });
+
+    it('POST /api/v1/rooms/:id/join rejects joining locked room', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${createdRoomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_ROOM_LOCKED');
+    });
+
+    it('DELETE /api/v1/rooms/:id forbids non-hosts from closing room', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/v1/rooms/${createdRoomId}`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      expect(res.statusCode).toBe(403);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_FORBIDDEN');
+    });
+
+    it('DELETE /api/v1/rooms/:id allows host to close room', async () => {
+      const res = await app.inject({
+        method: 'DELETE',
+        url: `/api/v1/rooms/${createdRoomId}`,
+        headers: { authorization: `Bearer ${hostToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.status).toBe('CLOSED');
+      expect(body.message).toBe('Room closed successfully');
+    });
+  });
+
+  describe('Realtime Tickets (REALTIME-002)', () => {
+    it('POST /api/v1/realtime/ticket rejects unauthenticated request', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/realtime/ticket',
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_UNAUTHORIZED');
+    });
+
+    it('POST /api/v1/realtime/ticket issues 60-second connection ticket for authenticated user', async () => {
+      const authRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/guest',
+        payload: { displayName: 'Ticket_User' },
+      });
+      const { token } = JSON.parse(authRes.body);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/realtime/ticket',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { roomId: '11111111-1111-4111-8111-111111111111' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(typeof body.ticket).toBe('string');
+      expect(body.expiresIn).toBe(60);
     });
   });
 });

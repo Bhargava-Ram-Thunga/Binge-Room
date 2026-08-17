@@ -34,6 +34,15 @@ const CreateRoomSchema = z.object({
     .optional(),
 });
 
+const UpdateRoomSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  isLocked: z.boolean().optional(),
+  allowGuestChat: z.boolean().optional(),
+  allowGuestVoice: z.boolean().optional(),
+  autoCloseOnHostLeave: z.boolean().optional(),
+  maxParticipants: z.number().int().min(2).max(100).optional(),
+});
+
 export const roomRoutes: FastifyPluginAsync = async (fastify) => {
   /**
    * POST /api/v1/rooms
@@ -192,6 +201,142 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           }
         : null,
       createdAt: room.createdAt,
+    });
+  });
+
+  /**
+   * PATCH /api/v1/rooms/:id
+   * Update room settings (host only)
+   */
+  fastify.patch('/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+
+    const parseResult = UpdateRoomSchema.safeParse(request.body || {});
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Invalid Update Payload',
+        status: 400,
+        detail: parseResult.error.issues[0]?.message || 'Invalid payload',
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { id },
+      include: { settings: true },
+    });
+
+    if (!room) {
+      return reply.status(404).send({
+        type: 'https://huddly.app/errors/room-not-found',
+        title: 'Room Not Found',
+        status: 404,
+        detail: 'The specified room does not exist.',
+        code: 'ERR_ROOM_NOT_FOUND',
+      });
+    }
+
+    if (room.hostUserId !== userId) {
+      return reply.status(403).send({
+        type: 'https://huddly.app/errors/forbidden',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Only the room host can modify settings.',
+        code: 'ERR_FORBIDDEN',
+      });
+    }
+
+    const {
+      name,
+      isLocked,
+      allowGuestChat,
+      allowGuestVoice,
+      autoCloseOnHostLeave,
+      maxParticipants,
+    } = parseResult.data;
+
+    const updated = await prisma.room.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        updatedAt: new Date(),
+        settings: {
+          update: {
+            ...(isLocked !== undefined && { isLocked }),
+            ...(allowGuestChat !== undefined && { allowGuestChat }),
+            ...(allowGuestVoice !== undefined && { allowGuestVoice }),
+            ...(autoCloseOnHostLeave !== undefined && { autoCloseOnHostLeave }),
+            ...(maxParticipants !== undefined && { maxParticipants }),
+          },
+        },
+      },
+      include: {
+        settings: true,
+        members: {
+          where: { status: 'JOINED' },
+        },
+      },
+    });
+
+    return reply.status(200).send({
+      id: updated.id,
+      roomCode: updated.roomCode,
+      name: updated.name,
+      hostUserId: updated.hostUserId,
+      status: updated.status,
+      settings: updated.settings,
+      memberCount: updated.members.length,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    });
+  });
+
+  /**
+   * DELETE /api/v1/rooms/:id
+   * Close a room (host only)
+   */
+  fastify.delete('/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+
+    const room = await prisma.room.findUnique({
+      where: { id },
+    });
+
+    if (!room) {
+      return reply.status(404).send({
+        type: 'https://huddly.app/errors/room-not-found',
+        title: 'Room Not Found',
+        status: 404,
+        detail: 'The specified room does not exist.',
+        code: 'ERR_ROOM_NOT_FOUND',
+      });
+    }
+
+    if (room.hostUserId !== userId) {
+      return reply.status(403).send({
+        type: 'https://huddly.app/errors/forbidden',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Only the room host can close the room.',
+        code: 'ERR_FORBIDDEN',
+      });
+    }
+
+    const closed = await prisma.room.update({
+      where: { id },
+      data: {
+        status: 'CLOSED',
+        updatedAt: new Date(),
+      },
+    });
+
+    return reply.status(200).send({
+      id: closed.id,
+      status: closed.status,
+      message: 'Room closed successfully',
     });
   });
 
