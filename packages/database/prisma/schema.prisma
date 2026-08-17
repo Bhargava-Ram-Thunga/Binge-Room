@@ -59,6 +59,7 @@ model User {
   reactions          MessageReaction[]
   auditEvents        AuditEvent[]      @relation("UserAuditEvents")
   controlledPlayback PlaybackState[]
+  navigationStates   NavigationState[] @relation("UserNavigationStates")
 
   @@index([isGuest, createdAt])
   @@map("users")
@@ -82,17 +83,17 @@ model UserDevice {
 }
 
 model Room {
-  id               String           @id @default(uuid()) @db.Uuid
-  roomCode         String           @unique @map("room_code") @db.VarChar(8)
-  name             String           @db.VarChar(100)
-  hostUserId       String           @map("host_user_id") @db.Uuid
-  status           RoomStatus       @default(ACTIVE)
-  lastActiveAt     DateTime         @default(now()) @map("last_active_at") @db.Timestamptz(6)
-  expiresAt        DateTime?        @map("expires_at") @db.Timestamptz(6)
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id               String            @id @default(uuid()) @db.Uuid
+  roomCode         String            @unique @map("room_code") @db.VarChar(8)
+  name             String            @db.VarChar(100)
+  hostUserId       String            @map("host_user_id") @db.Uuid
+  status           RoomStatus        @default(ACTIVE)
+  lastActiveAt     DateTime          @default(now()) @map("last_active_at") @db.Timestamptz(6)
+  expiresAt        DateTime?         @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  hostUser         User             @relation("HostedRooms", fields: [hostUserId], references: [id], onDelete: Restrict)
+  hostUser         User              @relation("HostedRooms", fields: [hostUserId], references: [id], onDelete: Restrict)
   settings         RoomSettings?
   permissions      RoomPermission[]
   members          RoomMember[]
@@ -100,6 +101,7 @@ model Room {
   mediaSessions    MediaSession[]
   playbackState    PlaybackState?
   playbackEvents   PlaybackEvent[]
+  navigationStates NavigationState[]
   chatMessages     ChatMessage[]
   auditEvents      AuditEvent[]
 
@@ -227,6 +229,22 @@ model PlaybackEvent {
   @@index([roomId, revision(sort: Desc)])
   @@index([serverTimestamp])
   @@map("playback_events")
+}
+
+model NavigationState {
+  id              String   @id @default(uuid()) @db.Uuid
+  roomId          String   @map("room_id") @db.Uuid
+  actorUserId     String?  @map("actor_user_id") @db.Uuid
+  url             String   @db.VarChar(2048)
+  pageTitle       String?  @map("page_title") @db.VarChar(255)
+  revision        BigInt
+  serverTimestamp DateTime @default(now()) @map("server_timestamp") @db.Timestamptz(6)
+
+  room            Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  actorUser       User?    @relation("UserNavigationStates", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, revision(sort: Desc)])
+  @@map("navigation_states")
 }
 
 model ChatMessage {
