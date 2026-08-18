@@ -58,6 +58,13 @@ export function generateRefreshToken(): { rawToken: string; tokenHash: string } 
 }
 
 /**
+ * Computes SHA-256 hash of an opaque refresh token.
+ */
+export function hashRefreshToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
  * Normalizes an email address to lowercase and trimmed string.
  */
 export function normalizeEmail(email: string): string {

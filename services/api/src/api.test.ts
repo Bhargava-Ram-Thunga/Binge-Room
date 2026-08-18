@@ -160,6 +160,66 @@ vi.mock('@huddly/database', () => {
             return device;
           },
         ),
+        findFirst: vi
+          .fn()
+          .mockImplementation(
+            async ({
+              where,
+            }: {
+              where: { refreshTokenHash?: string };
+              include?: { user?: boolean };
+            }) => {
+              const device = devices.find((d) => d.refreshTokenHash === where.refreshTokenHash);
+              if (!device) return null;
+              const user = users.find((u) => u.id === device.userId);
+              return {
+                ...device,
+                user: user || null,
+              };
+            },
+          ),
+        update: vi
+          .fn()
+          .mockImplementation(
+            async ({
+              where,
+              data,
+            }: {
+              where: { id: string };
+              data: { refreshTokenHash?: string | null; lastSeenAt?: Date };
+            }) => {
+              const device = devices.find((d) => d.id === where.id);
+              if (!device) throw new Error('Device not found');
+              if (data.refreshTokenHash !== undefined)
+                device.refreshTokenHash = data.refreshTokenHash;
+              if (data.lastSeenAt !== undefined) device.lastSeenAt = data.lastSeenAt;
+              return device;
+            },
+          ),
+        updateMany: vi
+          .fn()
+          .mockImplementation(
+            async ({
+              where,
+              data,
+            }: {
+              where: { refreshTokenHash?: string; userId?: string };
+              data: { refreshTokenHash?: string | null };
+            }) => {
+              let count = 0;
+              for (const d of devices) {
+                if (
+                  (where.refreshTokenHash && d.refreshTokenHash === where.refreshTokenHash) ||
+                  (where.userId && d.userId === where.userId)
+                ) {
+                  if (data.refreshTokenHash !== undefined)
+                    d.refreshTokenHash = data.refreshTokenHash;
+                  count++;
+                }
+              }
+              return { count };
+            },
+          ),
       },
       room: {
         create: vi.fn().mockImplementation(
@@ -324,7 +384,7 @@ describe('REST API Service (@huddly/api)', () => {
       expect(body.user.email).toBe('alice@example.com');
       expect(body.user.displayName).toBe('Alice');
       expect(body.user.isGuest).toBe(false);
-      expect(body.user.passwordHash).toBeUndefined(); // Must not leak password hash
+      expect(body.user.passwordHash).toBeUndefined();
       expect(typeof body.token).toBe('string');
       expect(typeof body.refreshToken).toBe('string');
     });
@@ -334,7 +394,7 @@ describe('REST API Service (@huddly/api)', () => {
         method: 'POST',
         url: '/api/v1/auth/register',
         payload: {
-          email: 'ALICE@EXAMPLE.COM', // Tests case-insensitivity normalization
+          email: 'ALICE@EXAMPLE.COM',
           password: 'AnotherPassword123!',
           displayName: 'Alice Duplicate',
         },
@@ -427,6 +487,87 @@ describe('REST API Service (@huddly/api)', () => {
       expect(res.statusCode).toBe(401);
       const body = JSON.parse(res.body);
       expect(body.code).toBe('ERR_INVALID_CREDENTIALS');
+    });
+  });
+
+  describe('Session & Refresh Token Management (AUTH-003 & AUTH-007)', () => {
+    let activeRefreshToken: string;
+    let rotatedRefreshToken: string;
+
+    beforeAll(async () => {
+      const registerRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'refresh_tester@example.com',
+          password: 'Password123!',
+          displayName: 'Refresh Tester',
+        },
+      });
+      activeRefreshToken = JSON.parse(registerRes.body).refreshToken;
+    });
+
+    it('POST /api/v1/auth/refresh rotates token and returns new access token', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        payload: { refreshToken: activeRefreshToken },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(typeof body.token).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
+      expect(body.refreshToken).not.toBe(activeRefreshToken);
+      rotatedRefreshToken = body.refreshToken;
+    });
+
+    it('POST /api/v1/auth/refresh rejects reuse of already rotated refresh token (401)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        payload: { refreshToken: activeRefreshToken }, // Old rotated token
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_TOKEN');
+    });
+
+    it('POST /api/v1/auth/refresh rejects missing refreshToken payload (400)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_PAYLOAD');
+    });
+
+    it('POST /api/v1/auth/logout invalidates device session', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/logout',
+        payload: { refreshToken: rotatedRefreshToken },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.message).toBe('Logged out successfully');
+    });
+
+    it('POST /api/v1/auth/refresh fails after logout revocation (401)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        payload: { refreshToken: rotatedRefreshToken },
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe('ERR_INVALID_TOKEN');
     });
   });
 
