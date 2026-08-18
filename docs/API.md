@@ -116,6 +116,58 @@ Generate an instant anonymous guest session.
 
 ---
 
+### POST `/api/v1/auth/refresh`
+
+Rotate refresh token and mint new access token (RFC 9700 Refresh Token Rotation).
+
+**Request Body:**
+
+```json
+{
+  "refreshToken": "<refresh_token>"
+}
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "token": "<jwt_access_token>",
+  "refreshToken": "<new_rotated_refresh_token>"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` (`ERR_INVALID_PAYLOAD`): Missing or invalid payload.
+- `401 Unauthorized` (`ERR_INVALID_TOKEN`): Token invalid, already rotated, or revoked.
+- `401 Unauthorized` (`ERR_TOKEN_EXPIRED`): Token exceeded 7-day maximum lifetime.
+- `403 Forbidden` (`ERR_ACCOUNT_INACTIVE`): Account suspended.
+
+---
+
+### POST `/api/v1/auth/logout`
+
+Revoke device session and invalidate refresh token.
+
+**Request Body:**
+
+```json
+{
+  "refreshToken": "<refresh_token>"
+}
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+---
+
 ### GET `/api/v1/auth/me`
 
 Retrieve current authenticated profile.

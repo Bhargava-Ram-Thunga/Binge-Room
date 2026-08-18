@@ -6,6 +6,7 @@ import {
   verifyPassword,
   dummyVerify,
   generateRefreshToken,
+  hashRefreshToken,
   normalizeEmail,
 } from '../utils/security.js';
 
@@ -32,6 +33,14 @@ const LoginRequestSchema = z.object({
   password: z.string().min(1, 'Password is required').max(128),
   deviceType: z.string().max(50).optional(),
   userAgent: z.string().max(512).optional(),
+});
+
+const RefreshRequestSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
+const LogoutRequestSchema = z.object({
+  refreshToken: z.string().min(1).optional(),
 });
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -211,6 +220,128 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       },
       token: accessToken,
       refreshToken: rawToken,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/refresh
+   * Rotate refresh token and issue new access token (RFC 9700 RTR)
+   */
+  fastify.post('/refresh', async (request, reply) => {
+    const parseResult = RefreshRequestSchema.safeParse(request.body || {});
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Invalid Refresh Payload',
+        status: 400,
+        detail: parseResult.error.issues[0]?.message || 'Invalid payload',
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    const { refreshToken } = parseResult.data;
+    const tokenHash = hashRefreshToken(refreshToken);
+
+    const device = await prisma.userDevice.findFirst({
+      where: { refreshTokenHash: tokenHash },
+      include: { user: true },
+    });
+
+    if (!device || !device.user) {
+      return reply.status(401).send({
+        type: 'https://huddly.app/errors/invalid-token',
+        title: 'Invalid Refresh Token',
+        status: 401,
+        detail: 'The provided refresh token is invalid, expired, or has already been used.',
+        code: 'ERR_INVALID_TOKEN',
+      });
+    }
+
+    if (device.user.status !== 'ACTIVE') {
+      return reply.status(403).send({
+        type: 'https://huddly.app/errors/account-inactive',
+        title: 'Account Inactive',
+        status: 403,
+        detail: 'This account has been suspended or deactivated.',
+        code: 'ERR_ACCOUNT_INACTIVE',
+      });
+    }
+
+    // 7-day expiration check
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - new Date(device.lastSeenAt).getTime() > SEVEN_DAYS_MS) {
+      await prisma.userDevice.update({
+        where: { id: device.id },
+        data: { refreshTokenHash: null },
+      });
+
+      return reply.status(401).send({
+        type: 'https://huddly.app/errors/token-expired',
+        title: 'Refresh Token Expired',
+        status: 401,
+        detail: 'The refresh token has expired (maximum 7 days). Please log in again.',
+        code: 'ERR_TOKEN_EXPIRED',
+      });
+    }
+
+    // Rotate refresh token: mint new token, invalidate previous token
+    const { rawToken: newRawToken, tokenHash: newTokenHash } = generateRefreshToken();
+
+    await prisma.userDevice.update({
+      where: { id: device.id },
+      data: {
+        refreshTokenHash: newTokenHash,
+        lastSeenAt: new Date(),
+      },
+    });
+
+    const newAccessToken = fastify.jwt.sign(
+      {
+        sub: device.user.id,
+        email: device.user.email,
+        displayName: device.user.displayName,
+        isGuest: device.user.isGuest,
+      },
+      { expiresIn: '15m' },
+    );
+
+    return reply.status(200).send({
+      token: newAccessToken,
+      refreshToken: newRawToken,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/logout
+   * Revoke device session and invalidate refresh token
+   */
+  fastify.post('/logout', async (request, reply) => {
+    const parseResult = LogoutRequestSchema.safeParse(request.body || {});
+    const refreshToken = parseResult.success ? parseResult.data.refreshToken : undefined;
+
+    let userId: string | undefined;
+    try {
+      const decoded = await request.jwtVerify<{ sub: string }>();
+      userId = decoded?.sub;
+    } catch {
+      // Optional Bearer token
+    }
+
+    if (refreshToken) {
+      const tokenHash = hashRefreshToken(refreshToken);
+      await prisma.userDevice.updateMany({
+        where: { refreshTokenHash: tokenHash },
+        data: { refreshTokenHash: null },
+      });
+    } else if (userId) {
+      await prisma.userDevice.updateMany({
+        where: { userId },
+        data: { refreshTokenHash: null },
+      });
+    }
+
+    return reply.status(200).send({
+      message: 'Logged out successfully',
     });
   });
 
