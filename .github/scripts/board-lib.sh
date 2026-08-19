@@ -8,21 +8,47 @@ PROJECT_ID="${PROJECT_ID:-PVT_kwHOBd-eFs4BaSCW}"
 STATUS_FIELD_ID="${STATUS_FIELD_ID:-PVTSSF_lAHOBd-eFs4BaSCWzhVKvwk}"
 
 # Status name → single-select option id
+# Maps both canonical board status names and aliases to the active board options:
+# - Backlog: 9549981e
+# - In Progress: 11b64dd9
+# - In Review: 4de3583a
+# - Done: 466da322
 status_option_id() {
   case "$1" in
-  "Backlog") echo "9549981e" ;;
-  "Research") echo "125c20cc" ;;
-  "Ready") echo "a9701f89" ;;
-  "In Progress") echo "11b64dd9" ;;
-  "Blocked") echo "98303428" ;;
-  "Code Review") echo "4de3583a" ;;
-  "Testing") echo "5e2bb994" ;;
-  "QA / UAT Sign-off") echo "fb4a8210" ;;
-  "Ready for Release") echo "31965ac5" ;;
-  "Done") echo "466da322" ;;
+  "Backlog" | "Research" | "Ready")
+    echo "9549981e"
+    ;;
+  "In Progress" | "Blocked")
+    echo "11b64dd9"
+    ;;
+  "In Review" | "Code Review" | "Testing" | "QA / UAT Sign-off" | "Ready for Release")
+    echo "4de3583a"
+    ;;
+  "Done")
+    echo "466da322"
+    ;;
   *)
-    echo "Unknown status: $1" >&2
-    return 1
+    # Dynamic fallback: try matching option name from project GraphQL API
+    local opt_id
+    opt_id="$(gh api graphql -f query='
+      query($project:ID!) {
+        node(id:$project) {
+          ... on ProjectV2 {
+            field(name:"Status") {
+              ... on ProjectV2SingleSelectField {
+                options { id name }
+              }
+            }
+          }
+        }
+      }' -f project="$PROJECT_ID" \
+      --jq ".data.node.field.options[] | select(.name == \"$1\") | .id" 2>/dev/null || true)"
+    if [[ -n "$opt_id" ]]; then
+      echo "$opt_id"
+    else
+      echo "Unknown status: $1, falling back to Backlog" >&2
+      echo "9549981e"
+    fi
     ;;
   esac
 }
