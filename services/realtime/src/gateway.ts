@@ -3,30 +3,58 @@ import websocket from '@fastify/websocket';
 import type { WebSocket } from 'ws';
 import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
 import { config } from '@huddly/config';
+import { prisma } from '@huddly/database';
 import {
   validateEventWithPayload,
   PROTOCOL_VERSION,
   type EventEnvelope,
   type RoomStateSnapshotPayload,
+  type PlaybackSnapshot,
+  type PresenceUpdatedPayload,
 } from '@huddly/protocol';
 
-export interface AuthenticatedClientContext {
-  userId: string;
-  displayName: string;
-  roomId: string;
-  memberId: string;
-  role: 'HOST' | 'PARTICIPANT';
+export const AuthenticatedClientContextSchema = z.object({
+  userId: z.string().uuid(),
+  displayName: z.string().min(1).max(50),
+  roomId: z.string().uuid(),
+  memberId: z.string().uuid(),
+  role: z.enum(['HOST', 'PARTICIPANT']),
+});
+
+export type AuthenticatedClientContext = z.infer<typeof AuthenticatedClientContextSchema>;
+
+export interface SocketMetadata {
+  context: AuthenticatedClientContext;
+  missedPongs: number;
+  rateLimit: { count: number; resetAt: number };
 }
 
 export interface GatewayState {
   roomSockets: Map<string, Set<WebSocket>>;
-  socketContexts: Map<WebSocket, AuthenticatedClientContext>;
-  socketRateLimits: Map<WebSocket, { count: number; resetAt: number }>;
-  roomRevisions: Map<string, number>;
+  socketMetadata: Map<WebSocket, SocketMetadata>;
 }
 
-export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?: Redis }) {
+export interface PlaybackStateStore {
+  mediaId: string;
+  mediaUrl: string;
+  position: number;
+  playing: boolean;
+  playbackRate: number;
+  revision: number;
+  serverTimestamp: number;
+}
+
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const MAX_MISSED_PONGS = 2;
+const MAX_EVENTS_PER_SECOND = 25;
+
+export async function buildGatewayApp(opts?: {
+  redisPubSub?: Redis;
+  redisState?: Redis;
+  heartbeatIntervalMs?: number;
+}) {
   const app = Fastify({
     logger: process.env.NODE_ENV === 'test' ? false : { level: 'info' },
   });
@@ -44,9 +72,7 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
 
   const state: GatewayState = {
     roomSockets: new Map(),
-    socketContexts: new Map(),
-    socketRateLimits: new Map(),
-    roomRevisions: new Map(),
+    socketMetadata: new Map(),
   };
 
   // Listen for incoming pub/sub messages across gateway nodes
@@ -89,14 +115,21 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
       return;
     }
 
-    let clientCtx: AuthenticatedClientContext;
+    let parsedTicket: unknown;
     try {
-      clientCtx = JSON.parse(ticketJson);
+      parsedTicket = JSON.parse(ticketJson);
     } catch {
       socket.close(4400, 'Invalid ticket payload structure');
       return;
     }
 
+    const contextValidation = AuthenticatedClientContextSchema.safeParse(parsedTicket);
+    if (!contextValidation.success) {
+      socket.close(4400, 'Invalid ticket payload structure');
+      return;
+    }
+
+    const clientCtx = contextValidation.data;
     const { roomId } = clientCtx;
 
     // Register socket
@@ -105,28 +138,103 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
       await redisSub.subscribe(`room:${roomId}`);
     }
     state.roomSockets.get(roomId)!.add(socket);
-    state.socketContexts.set(socket, clientCtx);
 
-    // Send initial snapshot on connect matching @huddly/protocol specification
-    const currentRev = state.roomRevisions.get(roomId) || 0;
-    const snapshotPayload: RoomStateSnapshotPayload = {
-      room: {
-        roomId,
-        name: 'Watch Room',
-        status: 'ACTIVE',
-        hostId: clientCtx.userId,
-        revision: currentRev,
-      },
-      members: [
-        {
-          memberId: clientCtx.memberId,
-          userId: clientCtx.userId,
-          displayName: clientCtx.displayName,
-          role: clientCtx.role,
-          presence: 'ONLINE',
+    state.socketMetadata.set(socket, {
+      context: clientCtx,
+      missedPongs: 0,
+      rateLimit: { count: 0, resetAt: Date.now() + 1000 },
+    });
+
+    // Handle WebSocket Pong heartbeat
+    socket.on('pong', () => {
+      const meta = state.socketMetadata.get(socket);
+      if (meta) {
+        meta.missedPongs = 0;
+      }
+    });
+
+    // Build authoritative Room State Snapshot from Redis + PostgreSQL
+    let currentRev = 0;
+    try {
+      const revStr = await redisState.get(`room:${roomId}:revision`);
+      if (revStr) {
+        currentRev = parseInt(revStr, 10) || 0;
+      }
+    } catch {
+      currentRev = 0;
+    }
+
+    // Query Postgres for room details and existing members
+    let dbRoom;
+    try {
+      dbRoom = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: {
+          members: {
+            where: { status: 'JOINED' },
+            include: { user: true },
+          },
+          playbackState: {
+            include: { mediaSession: true },
+          },
         },
-      ],
-      playback: {
+      });
+    } catch {
+      dbRoom = null;
+    }
+
+    const actualHostId = dbRoom?.hostUserId || clientCtx.userId;
+    const actualRoomName = dbRoom?.name || 'Watch Room';
+    const actualRoomStatus = dbRoom?.status === 'CLOSED' ? 'CLOSED' : 'ACTIVE';
+
+    // Populate members from Postgres joined members
+    const memberSnapshots = (dbRoom?.members || []).map((m) => ({
+      memberId: m.id,
+      userId: m.userId,
+      displayName: m.user?.displayName || 'Anonymous',
+      role: (m.role as 'HOST' | 'PARTICIPANT') || 'PARTICIPANT',
+      presence: 'ONLINE' as const,
+    }));
+
+    // Ensure the connecting member is in the members list
+    if (!memberSnapshots.some((m) => m.memberId === clientCtx.memberId)) {
+      memberSnapshots.push({
+        memberId: clientCtx.memberId,
+        userId: clientCtx.userId,
+        displayName: clientCtx.displayName,
+        role: clientCtx.role,
+        presence: 'ONLINE' as const,
+      });
+    }
+
+    // Read Playback state from Redis hot path, falling back to PostgreSQL, then default
+    let playbackState: PlaybackStateStore | null;
+    try {
+      const stateJson = await redisState.get(`room:${roomId}:state`);
+      if (stateJson) {
+        playbackState = JSON.parse(stateJson);
+      } else {
+        playbackState = null;
+      }
+    } catch {
+      playbackState = null;
+    }
+
+    if (!playbackState && dbRoom?.playbackState) {
+      const ps = dbRoom.playbackState;
+      playbackState = {
+        mediaId: ps.mediaSessionId || ps.mediaSession?.id || 'default-media',
+        mediaUrl: ps.mediaSession?.mediaUrl || 'https://huddly.app/media/placeholder.mp4',
+        position: ps.position,
+        playing: ps.isPlaying,
+        playbackRate: ps.playbackRate,
+        revision: Number(ps.revision),
+        serverTimestamp: new Date(ps.serverTimestamp).getTime(),
+      };
+    }
+
+    if (!playbackState) {
+      playbackState = {
         mediaId: 'default-media',
         mediaUrl: 'https://huddly.app/media/placeholder.mp4',
         position: 0.0,
@@ -134,7 +242,37 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
         playbackRate: 1.0,
         revision: currentRev,
         serverTimestamp: Date.now(),
+      };
+    }
+
+    // Compute late-joiner playback position
+    let computedPosition = playbackState.position;
+    if (playbackState.playing) {
+      const now = Date.now();
+      const elapsedSeconds = Math.max(0, (now - playbackState.serverTimestamp) / 1000);
+      computedPosition = playbackState.position + elapsedSeconds * playbackState.playbackRate;
+    }
+
+    const snapshotPlayback: PlaybackSnapshot = {
+      mediaId: playbackState.mediaId,
+      mediaUrl: playbackState.mediaUrl,
+      position: computedPosition,
+      playing: playbackState.playing,
+      playbackRate: playbackState.playbackRate,
+      revision: playbackState.revision,
+      serverTimestamp: Date.now(),
+    };
+
+    const snapshotPayload: RoomStateSnapshotPayload = {
+      room: {
+        roomId,
+        name: actualRoomName,
+        status: actualRoomStatus,
+        hostId: actualHostId,
+        revision: currentRev,
       },
+      members: memberSnapshots,
+      playback: snapshotPlayback,
       chat: {
         messages: [],
       },
@@ -152,25 +290,44 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
     };
     socket.send(JSON.stringify(snapshotEnvelope));
 
+    // Emit PRESENCE_UPDATED (ONLINE) to room
+    const joinRev = await redisState.incr(`room:${roomId}:revision`);
+    const joinPresenceEnvelope: EventEnvelope<PresenceUpdatedPayload> = {
+      protocolVersion: PROTOCOL_VERSION,
+      eventId: randomUUID(),
+      eventType: 'PRESENCE_UPDATED',
+      roomId,
+      actorId: clientCtx.userId,
+      revision: joinRev,
+      serverTimestamp: Date.now(),
+      payload: {
+        memberId: clientCtx.memberId,
+        status: 'ONLINE',
+        updatedAt: Date.now(),
+      },
+    };
+    await redisPubSub.publish(`room:${roomId}`, JSON.stringify(joinPresenceEnvelope));
+
     // Handle Incoming WebSocket Messages
     socket.on('message', async (data: Buffer | string) => {
       const receiveTime = Date.now();
 
-      // Per-socket sliding window rate limiting (max 25 msgs/second)
-      let limiter = state.socketRateLimits.get(socket);
-      if (!limiter || receiveTime > limiter.resetAt) {
-        limiter = { count: 1, resetAt: receiveTime + 1000 };
-        state.socketRateLimits.set(socket, limiter);
-      } else {
-        limiter.count += 1;
-        if (limiter.count > 25) {
-          socket.send(
-            JSON.stringify({
-              error: 'RATE_LIMITED',
-              message: 'Rate limit exceeded: maximum 25 events per second.',
-            }),
-          );
-          return;
+      // Per-socket fixed window rate limiting (max 25 messages/second)
+      const meta = state.socketMetadata.get(socket);
+      if (meta) {
+        if (receiveTime > meta.rateLimit.resetAt) {
+          meta.rateLimit = { count: 1, resetAt: receiveTime + 1000 };
+        } else {
+          meta.rateLimit.count += 1;
+          if (meta.rateLimit.count > MAX_EVENTS_PER_SECOND) {
+            socket.send(
+              JSON.stringify({
+                error: 'RATE_LIMITED',
+                message: 'Rate limit exceeded: maximum 25 events per second.',
+              }),
+            );
+            return;
+          }
         }
       }
 
@@ -224,9 +381,87 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
         return;
       }
 
-      // Assign monotonic revision
-      const nextRev = (state.roomRevisions.get(roomId) || 0) + 1;
-      state.roomRevisions.set(roomId, nextRev);
+      // Assign monotonic distributed revision via Redis atomic increment
+      const nextRev = await redisState.incr(`room:${roomId}:revision`);
+
+      // Persist playback state to Redis hot path BEFORE publishing
+      if (env.eventType.startsWith('PLAYBACK_') || env.eventType.startsWith('MEDIA_')) {
+        let currentPlayback: PlaybackStateStore | null = null;
+        try {
+          const currentStr = await redisState.get(`room:${roomId}:state`);
+          if (currentStr) currentPlayback = JSON.parse(currentStr);
+        } catch {
+          currentPlayback = null;
+        }
+
+        const payloadObj = env.payload as Record<string, unknown>;
+        const mediaId =
+          (payloadObj['mediaId'] as string) || currentPlayback?.mediaId || 'default-media';
+        const mediaUrl =
+          (payloadObj['mediaUrl'] as string) ||
+          currentPlayback?.mediaUrl ||
+          'https://huddly.app/media/placeholder.mp4';
+
+        let position = (payloadObj['position'] as number) ?? currentPlayback?.position ?? 0.0;
+        let playing = currentPlayback?.playing ?? false;
+        let playbackRate =
+          (payloadObj['playbackRate'] as number) ?? currentPlayback?.playbackRate ?? 1.0;
+
+        if (env.eventType === 'PLAYBACK_PLAY') {
+          playing = true;
+          position = (payloadObj['position'] as number) ?? position;
+          playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
+        } else if (env.eventType === 'PLAYBACK_PAUSE') {
+          playing = false;
+          position = (payloadObj['position'] as number) ?? position;
+        } else if (env.eventType === 'PLAYBACK_SEEK') {
+          position = (payloadObj['position'] as number) ?? position;
+        } else if (env.eventType === 'PLAYBACK_RATE') {
+          playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
+        } else if (env.eventType === 'MEDIA_LOADED') {
+          position = 0.0;
+          playing = false;
+        } else if (env.eventType === 'MEDIA_ENDED') {
+          playing = false;
+          position = (payloadObj['position'] as number) ?? position;
+        }
+
+        const updatedState: PlaybackStateStore = {
+          mediaId,
+          mediaUrl,
+          position,
+          playing,
+          playbackRate,
+          revision: nextRev,
+          serverTimestamp: Date.now(),
+        };
+
+        await redisState.set(`room:${roomId}:state`, JSON.stringify(updatedState));
+
+        // Asynchronously update PostgreSQL durable playback record
+        prisma.playbackState
+          .upsert({
+            where: { roomId },
+            update: {
+              position,
+              isPlaying: playing,
+              playbackRate,
+              revision: BigInt(nextRev),
+              controllerUserId: clientCtx.userId,
+              serverTimestamp: new Date(),
+            },
+            create: {
+              roomId,
+              position,
+              isPlaying: playing,
+              playbackRate,
+              revision: BigInt(nextRev),
+              controllerUserId: clientCtx.userId,
+              serverTimestamp: new Date(),
+            },
+          })
+          .catch(() => {});
+      }
 
       const serverEnvelope = {
         ...env,
@@ -242,8 +477,7 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
 
     // Cleanup on disconnect
     socket.on('close', async () => {
-      state.socketContexts.delete(socket);
-      state.socketRateLimits.delete(socket);
+      state.socketMetadata.delete(socket);
       const roomSet = state.roomSockets.get(roomId);
       if (roomSet) {
         roomSet.delete(socket);
@@ -252,10 +486,49 @@ export async function buildGatewayApp(opts?: { redisPubSub?: Redis; redisState?:
           await redisSub.unsubscribe(`room:${roomId}`);
         }
       }
+
+      // Emit PRESENCE_UPDATED (OFFLINE) to room
+      try {
+        const leaveRev = await redisState.incr(`room:${roomId}:revision`);
+        const leavePresenceEnvelope: EventEnvelope<PresenceUpdatedPayload> = {
+          protocolVersion: PROTOCOL_VERSION,
+          eventId: randomUUID(),
+          eventType: 'PRESENCE_UPDATED',
+          roomId,
+          actorId: clientCtx.userId,
+          revision: leaveRev,
+          serverTimestamp: Date.now(),
+          payload: {
+            memberId: clientCtx.memberId,
+            status: 'OFFLINE',
+            updatedAt: Date.now(),
+          },
+        };
+        await redisPubSub.publish(`room:${roomId}`, JSON.stringify(leavePresenceEnvelope));
+      } catch {
+        // Ignore disconnect presence error if server closing
+      }
     });
   });
 
+  // WebSocket Heartbeat monitor (every 30s)
+  const heartbeatInterval = setInterval(() => {
+    for (const [socket, meta] of state.socketMetadata.entries()) {
+      if (socket.readyState !== 1 /* OPEN */) {
+        continue;
+      }
+      if (meta.missedPongs >= MAX_MISSED_PONGS) {
+        socket.terminate();
+        state.socketMetadata.delete(socket);
+        continue;
+      }
+      meta.missedPongs += 1;
+      socket.ping();
+    }
+  }, opts?.heartbeatIntervalMs ?? HEARTBEAT_INTERVAL_MS);
+
   app.addHook('onClose', async () => {
+    clearInterval(heartbeatInterval);
     await redisSub.quit();
     if (!opts?.redisPubSub) await redisPubSub.quit();
     if (!opts?.redisState) await redisState.quit();
