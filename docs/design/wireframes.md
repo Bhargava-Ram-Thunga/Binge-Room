@@ -42,7 +42,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 
 ### 2.1 Theater Layout (Default for Media Focus)
 
-* Large central video element (80% width) with vertical participant strips and collapsible right chat drawer.
+- Large central video element (80% width) with vertical participant strips and collapsible right chat drawer.
 
 ```text
 +---------------------------------------------------------+-------------------+
@@ -57,7 +57,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 
 ### 2.2 Grid Layout (Equal Social Focus)
 
-* Video player shares screen with participant video/avatar tiles in a responsive dynamic grid.
+- Video player shares screen with participant video/avatar tiles in a responsive dynamic grid.
 
 ```text
 +-----------------------------+-----------------------------+-----------------+
@@ -73,7 +73,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 
 ### 2.3 Speaker Focus Layout (Presentation / Commentary)
 
-* Active speaker avatar highlighted in large preview tile; video stream docked side-by-side.
+- Active speaker avatar highlighted in large preview tile; video stream docked side-by-side.
 
 ```text
 +-----------------------------+-----------------------------+-----------------+

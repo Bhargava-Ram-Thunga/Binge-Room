@@ -8,18 +8,18 @@ For legal and copyright boundaries, see the dedicated analysis in `docs/research
 
 ## 1. Specification Findings Matrix
 
-| Finding | Severity | Spec Section | Recommendation |
-| --- | --- | --- | --- |
-| **F-01: Universal DOM Video Control** | High | Architecture / Extension | Do not assume every website exposes standard `<video>` elements directly accessible in top-level DOM. Custom WebGL players, Canvas renderers, cross-origin iframes, and closed shadow DOM roots break naive observation. Adopt a 3-tier fallback ladder (native adapter -> generic HTML5 observer -> manual sync override). |
-| **F-02: 100-Participant Voice SFU Limits** | Medium | Voice Architecture | A single self-hosted LiveKit SFU instance handles 100 concurrent listeners easily, but 100 simultaneous active unmuted speakers introduces massive bandwidth and client mixing CPU overhead. Enforce active-speaker limits and default-muted participants for rooms exceeding 25 members. |
-| **F-03: Cross-Browser Manifest V3 Parity** | High | Extension Architecture | Chrome, Firefox, and Safari have divergent MV3 lifecycles. Firefox maintains persistent background scripts and differs on `declarativeNetRequest`, while Safari requires native Xcode wrapper bundling. Target Chrome/Brave/Edge as Tier 1 personal daily drivers and support Firefox as Tier 2. |
-| **F-04: Monotonic Clock Assumption** | High | Sync Algorithm | Client system clocks drift and cannot be trusted for absolute time comparisons. Implement Cristian's algorithm / NTP ping-pong offsets during WebSocket heartbeat to establish a server-synchronized reference clock. |
-| **F-05: DRM and Encrypted Media Extensions (EME)** | High | Media Playback | Widevine/FairPlay encrypted streams prevent raw frame inspection or buffer mutation. Enforce observe-only semantics via standard HTMLMediaElement timing properties (`currentTime`, `paused`, `playbackRate`) without touching EME decryptors. |
-| **F-06: Ephemeral vs Persistent State Split** | Medium | Database / Redis | Storing sub-second playback heartbeats in PostgreSQL introduces write amplification. Delegate active room playback ticks and presence to Redis RAM structures with write-behind snapshots to Postgres on room close. |
-| **F-07: Single-Point-of-Failure Controller Election** | Medium | Playback Control | When the host leaves or disconnects, playback can stall without clear authority. Define deterministic host handoff and controller election policies based on room seniority. |
-| **F-08: Token Entropy and Session Fixation** | Medium | Authentication | URL invite parameters and refresh tokens require high-entropy cryptographic generation (CSPRNG) with single-use rotation and SHA-256 database hashing. |
-| **F-09: Unbounded Chat Replay Buffers** | Low | Chat Service | Loading entire chat history into memory during room connection degrades client performance. Enforce cursor-based reverse pagination (50 messages per page). |
-| **F-10: WebSocket Reconnection Storms** | Medium | Realtime Gateway | Simultaneous client reconnection after transient network drop can overwhelm the gateway. Require randomized exponential backoff with jitter on client reconnect logic. |
+| Finding                                               | Severity | Spec Section             | Recommendation                                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------- | -------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F-01: Universal DOM Video Control**                 | High     | Architecture / Extension | Do not assume every website exposes standard `<video>` elements directly accessible in top-level DOM. Custom WebGL players, Canvas renderers, cross-origin iframes, and closed shadow DOM roots break naive observation. Adopt a 3-tier fallback ladder (native adapter -> generic HTML5 observer -> manual sync override). |
+| **F-02: 100-Participant Voice SFU Limits**            | Medium   | Voice Architecture       | A single self-hosted LiveKit SFU instance handles 100 concurrent listeners easily, but 100 simultaneous active unmuted speakers introduces massive bandwidth and client mixing CPU overhead. Enforce active-speaker limits and default-muted participants for rooms exceeding 25 members.                                   |
+| **F-03: Cross-Browser Manifest V3 Parity**            | High     | Extension Architecture   | Chrome, Firefox, and Safari have divergent MV3 lifecycles. Firefox maintains persistent background scripts and differs on `declarativeNetRequest`, while Safari requires native Xcode wrapper bundling. Target Chrome/Brave/Edge as Tier 1 personal daily drivers and support Firefox as Tier 2.                            |
+| **F-04: Monotonic Clock Assumption**                  | High     | Sync Algorithm           | Client system clocks drift and cannot be trusted for absolute time comparisons. Implement Cristian's algorithm / NTP ping-pong offsets during WebSocket heartbeat to establish a server-synchronized reference clock.                                                                                                       |
+| **F-05: DRM and Encrypted Media Extensions (EME)**    | High     | Media Playback           | Widevine/FairPlay encrypted streams prevent raw frame inspection or buffer mutation. Enforce observe-only semantics via standard HTMLMediaElement timing properties (`currentTime`, `paused`, `playbackRate`) without touching EME decryptors.                                                                              |
+| **F-06: Ephemeral vs Persistent State Split**         | Medium   | Database / Redis         | Storing sub-second playback heartbeats in PostgreSQL introduces write amplification. Delegate active room playback ticks and presence to Redis RAM structures with write-behind snapshots to Postgres on room close.                                                                                                        |
+| **F-07: Single-Point-of-Failure Controller Election** | Medium   | Playback Control         | When the host leaves or disconnects, playback can stall without clear authority. Define deterministic host handoff and controller election policies based on room seniority.                                                                                                                                                |
+| **F-08: Token Entropy and Session Fixation**          | Medium   | Authentication           | URL invite parameters and refresh tokens require high-entropy cryptographic generation (CSPRNG) with single-use rotation and SHA-256 database hashing.                                                                                                                                                                      |
+| **F-09: Unbounded Chat Replay Buffers**               | Low      | Chat Service             | Loading entire chat history into memory during room connection degrades client performance. Enforce cursor-based reverse pagination (50 messages per page).                                                                                                                                                                 |
+| **F-10: WebSocket Reconnection Storms**               | Medium   | Realtime Gateway         | Simultaneous client reconnection after transient network drop can overwhelm the gateway. Require randomized exponential backoff with jitter on client reconnect logic.                                                                                                                                                      |
 
 ---
 
@@ -27,29 +27,29 @@ For legal and copyright boundaries, see the dedicated analysis in `docs/research
 
 ### 2.1 Universal Site Control
 
-* **Claim:** The platform can synchronize playback on any arbitrary website on the internet.
-* **Technical Reality:** False for arbitrary video players without fallback. While standard HTML5 `<video>` elements cover approximately 85% to 90% of streaming websites, several major platforms isolate players inside nested cross-origin iframes, closed Shadow DOM boundaries, or canvas-based custom decoders.
-* **Verdict: CONDITIONAL PASS (Tiered Fallback).**
-  * Tier 1: Dedicated platform adapters (custom DOM traversal and event listeners for known sites).
-  * Tier 2: Generic HTML5 video observer (MutationObserver + standard `HTMLMediaElement` hooks).
-  * Tier 3: Manual sync control (host controls a floating timing reference bar; participants adjust local video manually if DOM binding is blocked).
+- **Claim:** The platform can synchronize playback on any arbitrary website on the internet.
+- **Technical Reality:** False for arbitrary video players without fallback. While standard HTML5 `<video>` elements cover approximately 85% to 90% of streaming websites, several major platforms isolate players inside nested cross-origin iframes, closed Shadow DOM boundaries, or canvas-based custom decoders.
+- **Verdict: CONDITIONAL PASS (Tiered Fallback).**
+  - Tier 1: Dedicated platform adapters (custom DOM traversal and event listeners for known sites).
+  - Tier 2: Generic HTML5 video observer (MutationObserver + standard `HTMLMediaElement` hooks).
+  - Tier 3: Manual sync control (host controls a floating timing reference bar; participants adjust local video manually if DOM binding is blocked).
 
 ### 2.2 100-Participant Target
 
-* **Claim:** A single room supports 100 participants with real-time sync, chat, and voice.
-* **Technical Reality:** Realistic for state synchronization (WebSocket JSON broadcasts at 1-2 Hz consume <50 KB/s per client). Realistic for LiveKit SFU audio distribution if only active speakers publish audio tracks. Unrealistic if all 100 participants publish unmuted audio concurrently on a modest self-hosted VPS.
-* **Verdict: PASS WITH CAPACITY CONSTRAINTS.**
-  * Realtime state and chat: Verified for 100 participants.
-  * Voice audio: Max 5 concurrent publishers (dominant speaker switching); remaining participants receive mixed downlink streams.
+- **Claim:** A single room supports 100 participants with real-time sync, chat, and voice.
+- **Technical Reality:** Realistic for state synchronization (WebSocket JSON broadcasts at 1-2 Hz consume <50 KB/s per client). Realistic for LiveKit SFU audio distribution if only active speakers publish audio tracks. Unrealistic if all 100 participants publish unmuted audio concurrently on a modest self-hosted VPS.
+- **Verdict: PASS WITH CAPACITY CONSTRAINTS.**
+  - Realtime state and chat: Verified for 100 participants.
+  - Voice audio: Max 5 concurrent publishers (dominant speaker switching); remaining participants receive mixed downlink streams.
 
 ### 2.3 Cross-Browser Manifest V3 Parity
 
-* **Claim:** A single extension codebase runs identically across Chrome, Firefox, and Safari.
-* **Technical Reality:** False without browser-specific build targets. Safari requires a macOS/iOS app container compiled via Xcode, while Firefox has distinct permissions models and WebExtensions polyfills.
-* **Verdict: SCOPED FOR PERSONAL USE.**
-  * Tier 1 Primary: Chromium-based browsers (Chrome, Edge, Brave) using standard MV3 Service Workers.
-  * Tier 2 Secondary: Firefox MV3 via WebExtensions build config.
-  * Tier 3 Deferred: Safari (omitted from immediate personal build plan to avoid Apple developer provisioning overhead).
+- **Claim:** A single extension codebase runs identically across Chrome, Firefox, and Safari.
+- **Technical Reality:** False without browser-specific build targets. Safari requires a macOS/iOS app container compiled via Xcode, while Firefox has distinct permissions models and WebExtensions polyfills.
+- **Verdict: SCOPED FOR PERSONAL USE.**
+  - Tier 1 Primary: Chromium-based browsers (Chrome, Edge, Brave) using standard MV3 Service Workers.
+  - Tier 2 Secondary: Firefox MV3 via WebExtensions build config.
+  - Tier 3 Deferred: Safari (omitted from immediate personal build plan to avoid Apple developer provisioning overhead).
 
 ---
 
