@@ -306,11 +306,56 @@ Soft-close a room (Host only).
 
 ---
 
-### POST `/api/v1/rooms/:id/join`
+### POST `/api/v1/rooms/:id/invites`
 
-Join an active room as participant.
+Generate a custom invite link with optional usage limit and expiration (Host only).
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Request Body:**
+
+```json
+{
+  "expiresInSeconds": 3600,
+  "maxUses": 5
+}
+```
+
+**Response: `201 Created`**
+
+```json
+{
+  "id": "c1f7a8b9-8a57-4791-81fe-4c455b099bc9",
+  "roomId": "9c858901-8a57-4791-81fe-4c455b099bc9",
+  "code": "aB8k9LmX",
+  "inviteUrl": "https://huddly.app/join/aB8k9LmX",
+  "maxUses": 5,
+  "usesCount": 0,
+  "expiresAt": "2026-08-19T15:48:00.000Z",
+  "createdAt": "2026-08-19T14:48:00.000Z"
+}
+```
+
+**Errors:**
+
+- `403 Forbidden` (`ERR_FORBIDDEN`): Authenticated user is not the host.
+- `404 Not Found` (`ERR_ROOM_NOT_FOUND`): Room is closed or non-existent.
+
+---
+
+### POST `/api/v1/rooms/:id/join`
+
+Join an active room as participant (supports optional `inviteCode` with expiry/capacity validation and lock bypass).
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Request Body (Optional):**
+
+```json
+{
+  "inviteCode": "aB8k9LmX"
+}
+```
 
 **Response: `200 OK`**
 
@@ -325,9 +370,60 @@ Join an active room as participant.
 
 **Errors:**
 
-- `403 Forbidden` (`ERR_ROOM_LOCKED`): Room is locked by host.
+- `400 Bad Request` (`ERR_INVITE_EXPIRED`): The provided invite link has expired.
+- `400 Bad Request` (`ERR_INVITE_MAX_USES`): The invite link has reached its maximum redemption limit.
+- `403 Forbidden` (`ERR_ROOM_LOCKED`): Room is locked by host and no valid invite was provided.
 - `404 Not Found` (`ERR_ROOM_NOT_FOUND`): Room is closed or non-existent.
+- `404 Not Found` (`ERR_INVITE_NOT_FOUND`): The provided invite code does not belong to this room.
 - `409 Conflict` (`ERR_ROOM_FULL`): Participant capacity reached.
+
+---
+
+### POST `/api/v1/rooms/:id/leave`
+
+Leave an active room.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response: `200 OK`**
+
+```json
+{
+  "message": "Left room successfully",
+  "roomId": "9c858901-8a57-4791-81fe-4c455b099bc9",
+  "status": "LEFT"
+}
+```
+
+**Errors:**
+
+- `404 Not Found` (`ERR_NOT_ROOM_MEMBER`): Caller is not an active member of this room.
+
+---
+
+### DELETE `/api/v1/rooms/:id/members/:userId`
+
+Host kicks a participant from the room.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response: `200 OK`**
+
+```json
+{
+  "message": "Member kicked successfully",
+  "roomId": "9c858901-8a57-4791-81fe-4c455b099bc9",
+  "userId": "target-user-id",
+  "status": "KICKED"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` (`ERR_CANNOT_KICK_SELF`): Host cannot kick themselves.
+- `403 Forbidden` (`ERR_FORBIDDEN`): Caller is not the room host.
+- `404 Not Found` (`ERR_ROOM_NOT_FOUND`): Room does not exist or is closed.
+- `404 Not Found` (`ERR_NOT_ROOM_MEMBER`): Target user is not an active member.
 
 ---
 

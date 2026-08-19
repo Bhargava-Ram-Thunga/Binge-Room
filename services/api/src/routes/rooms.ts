@@ -4,6 +4,10 @@ import { customAlphabet } from 'nanoid';
 import { prisma, type Prisma } from '@huddly/database';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 4);
+const generateInviteCode = customAlphabet(
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+  8,
+);
 
 function generateRoomCode(): string {
   return `hud-${nanoid()}`;
@@ -41,6 +45,15 @@ const UpdateRoomSchema = z.object({
   allowGuestVoice: z.boolean().optional(),
   autoCloseOnHostLeave: z.boolean().optional(),
   maxParticipants: z.number().int().min(2).max(100).optional(),
+});
+
+const CreateInviteSchema = z.object({
+  expiresInSeconds: z.number().int().positive().max(604800).optional(),
+  maxUses: z.number().int().positive().max(1000).optional(),
+});
+
+const JoinRoomSchema = z.object({
+  inviteCode: z.string().min(1).max(16).optional(),
 });
 
 export const roomRoutes: FastifyPluginAsync = async (fastify) => {
@@ -341,12 +354,92 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * POST /api/v1/rooms/:id/invites
+   * Generate an invite code + shareable URL with optional expiry and max uses (host only)
+   */
+  fastify.post('/:id/invites', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+
+    const parseResult = CreateInviteSchema.safeParse(request.body || {});
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Invalid Invite Creation Request',
+        status: 400,
+        detail: parseResult.error.issues[0]?.message || 'Invalid payload',
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { id },
+    });
+
+    if (!room || room.status !== 'ACTIVE') {
+      return reply.status(404).send({
+        type: 'https://huddly.app/errors/room-not-found',
+        title: 'Room Not Found',
+        status: 404,
+        detail: 'The specified room does not exist or has closed.',
+        code: 'ERR_ROOM_NOT_FOUND',
+      });
+    }
+
+    if (room.hostUserId !== userId) {
+      return reply.status(403).send({
+        type: 'https://huddly.app/errors/forbidden',
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Only the room host can create invite links.',
+        code: 'ERR_FORBIDDEN',
+      });
+    }
+
+    const { expiresInSeconds, maxUses } = parseResult.data;
+    const expiresAt = expiresInSeconds ? new Date(Date.now() + expiresInSeconds * 1000) : null;
+    const code = generateInviteCode();
+
+    const invite = await prisma.roomInvite.create({
+      data: {
+        roomId: room.id,
+        code,
+        createdByUserId: userId,
+        maxUses: maxUses ?? null,
+        expiresAt,
+      },
+    });
+
+    return reply.status(201).send({
+      id: invite.id,
+      roomId: invite.roomId,
+      code: invite.code,
+      inviteUrl: `https://huddly.app/join/${invite.code}`,
+      maxUses: invite.maxUses,
+      usesCount: invite.usesCount,
+      expiresAt: invite.expiresAt,
+      createdAt: invite.createdAt,
+    });
+  });
+
+  /**
    * POST /api/v1/rooms/:id/join
-   * Join an active room as participant
+   * Join an active room as participant (supports inviteCode with expiry and maxUses enforcement)
    */
   fastify.post('/:id/join', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     const userPayload = request.user as { sub: string };
     const { id } = request.params as { id: string };
+
+    const parseResult = JoinRoomSchema.safeParse(request.body || {});
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Invalid Join Request',
+        status: 400,
+        detail: parseResult.error.issues[0]?.message || 'Invalid payload',
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
 
     const room = await prisma.room.findUnique({
       where: { id },
@@ -363,7 +456,54 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    if (room.settings?.isLocked) {
+    const { inviteCode } = parseResult.data;
+    let hasValidInvite = false;
+
+    if (inviteCode) {
+      const invite = await prisma.roomInvite.findUnique({
+        where: { code: inviteCode },
+      });
+
+      if (!invite || invite.roomId !== room.id) {
+        return reply.status(404).send({
+          type: 'https://huddly.app/errors/invite-not-found',
+          title: 'Invite Not Found',
+          status: 404,
+          detail: 'The invite link is invalid for this room.',
+          code: 'ERR_INVITE_NOT_FOUND',
+        });
+      }
+
+      if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
+        return reply.status(400).send({
+          type: 'https://huddly.app/errors/invite-expired',
+          title: 'Invite Expired',
+          status: 400,
+          detail: 'This invite link has expired.',
+          code: 'ERR_INVITE_EXPIRED',
+        });
+      }
+
+      if (invite.maxUses !== null && invite.usesCount >= invite.maxUses) {
+        return reply.status(400).send({
+          type: 'https://huddly.app/errors/invite-max-uses',
+          title: 'Invite Limit Reached',
+          status: 400,
+          detail: 'This invite link has reached its maximum usage limit.',
+          code: 'ERR_INVITE_MAX_USES',
+        });
+      }
+
+      // Increment redemption count
+      await prisma.roomInvite.update({
+        where: { id: invite.id },
+        data: { usesCount: { increment: 1 } },
+      });
+
+      hasValidInvite = true;
+    }
+
+    if (room.settings?.isLocked && !hasValidInvite && room.hostUserId !== userPayload.sub) {
       return reply.status(403).send({
         type: 'https://huddly.app/errors/room-locked',
         title: 'Room Locked',
@@ -409,4 +549,127 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
       joinedAt: membership.joinedAt,
     });
   });
+
+  /**
+   * POST /api/v1/rooms/:id/leave
+   * Leave a room (sets status to LEFT)
+   */
+  fastify.post('/:id/leave', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+
+    const member = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: {
+          roomId: id,
+          userId,
+        },
+      },
+    });
+
+    if (!member || member.status !== 'JOINED') {
+      return reply.status(404).send({
+        type: 'https://huddly.app/errors/not-a-member',
+        title: 'Not a Member',
+        status: 404,
+        detail: 'You are not currently an active member of this room.',
+        code: 'ERR_NOT_ROOM_MEMBER',
+      });
+    }
+
+    const updated = await prisma.roomMember.update({
+      where: { id: member.id },
+      data: {
+        status: 'LEFT',
+        leftAt: new Date(),
+      },
+    });
+
+    return reply.status(200).send({
+      message: 'Left room successfully',
+      roomId: id,
+      status: updated.status,
+    });
+  });
+
+  /**
+   * DELETE /api/v1/rooms/:id/members/:userId
+   * Host kicks a participant from the room (sets status to KICKED)
+   */
+  fastify.delete(
+    '/:id/members/:userId',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const hostUserId = (request.user as { sub: string }).sub;
+      const { id, userId } = request.params as { id: string; userId: string };
+
+      const room = await prisma.room.findUnique({
+        where: { id },
+      });
+
+      if (!room || room.status !== 'ACTIVE') {
+        return reply.status(404).send({
+          type: 'https://huddly.app/errors/room-not-found',
+          title: 'Room Not Found',
+          status: 404,
+          detail: 'The specified room does not exist or has closed.',
+          code: 'ERR_ROOM_NOT_FOUND',
+        });
+      }
+
+      if (room.hostUserId !== hostUserId) {
+        return reply.status(403).send({
+          type: 'https://huddly.app/errors/forbidden',
+          title: 'Forbidden',
+          status: 403,
+          detail: 'Only the room host can kick participants.',
+          code: 'ERR_FORBIDDEN',
+        });
+      }
+
+      if (userId === hostUserId) {
+        return reply.status(400).send({
+          type: 'https://huddly.app/errors/invalid-operation',
+          title: 'Invalid Operation',
+          status: 400,
+          detail: 'The room host cannot kick themselves.',
+          code: 'ERR_CANNOT_KICK_SELF',
+        });
+      }
+
+      const member = await prisma.roomMember.findUnique({
+        where: {
+          roomId_userId: {
+            roomId: id,
+            userId,
+          },
+        },
+      });
+
+      if (!member || member.status !== 'JOINED') {
+        return reply.status(404).send({
+          type: 'https://huddly.app/errors/not-a-member',
+          title: 'Not a Member',
+          status: 404,
+          detail: 'The specified user is not an active member of this room.',
+          code: 'ERR_NOT_ROOM_MEMBER',
+        });
+      }
+
+      const updated = await prisma.roomMember.update({
+        where: { id: member.id },
+        data: {
+          status: 'KICKED',
+          leftAt: new Date(),
+        },
+      });
+
+      return reply.status(200).send({
+        message: 'Member kicked successfully',
+        roomId: id,
+        userId,
+        status: updated.status,
+      });
+    },
+  );
 };
