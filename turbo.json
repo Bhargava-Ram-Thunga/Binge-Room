@@ -11,6 +11,13 @@
     "typecheck": {
       "dependsOn": ["^db:generate", "db:generate", "^build"]
     },
+    "lint": {
+      "dependsOn": ["^db:generate", "db:generate", "^build"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
     "test": {
       "dependsOn": ["^db:generate", "db:generate", "^build"]
     },
