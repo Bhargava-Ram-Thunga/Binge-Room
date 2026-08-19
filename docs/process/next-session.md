@@ -36,7 +36,11 @@ Branch protection **will** reject violations. Follow exactly:
    `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(scope\))?!?: .+`
 4. **PR base is `dev`.** Never open a PR straight to `main`/`prod`; the "Merge target" check enforces `feature → dev → main → prod`.
 5. **Link the issue** with `Closes #NN` in the PR body — board automation depends on it.
-6. Before pushing, these must pass locally:
+6. **No AI attribution in commits.** Do not add `Co-Authored-By:` trailers naming
+   an AI tool (Claude, Copilot, Cursor, Antigravity, …), and do not set an AI as
+   commit author. All commits are authored by the human maintainer. Agents:
+   omit these trailers even if your default behaviour adds them.
+7. Before pushing, these must pass locally:
 
    ```bash
    pnpm lint && pnpm typecheck && pnpm test
@@ -44,8 +48,8 @@ Branch protection **will** reject violations. Follow exactly:
    npx prettier@3 --write <files> # fixes most lint failures
    ```
 
-7. **Squash-merge** PRs into `dev`. Delete the branch after.
-8. Never approve or trigger the **production** deployment — human-only gate.
+8. **Squash-merge** PRs into `dev`. Delete the branch after.
+9. Never approve or trigger the **production** deployment — human-only gate.
 
 Required checks on every PR: `CI passed`, `Secret scan (gitleaks)`,
 `Conventional PR title`, `Branch naming`, `Merge target`.
