@@ -40,18 +40,19 @@ jobs:
           status=""
           case "$ACTION" in
             opened)   status="Backlog" ;;                 # S1
-            reopened) status="Backlog" ;;                 # S17
-            closed)   status="Done" ;;                    # S16
-            assigned) status="In Progress" ;;             # S6
+            reopened) status="Backlog" ;;                 # S10
+            closed)   status="Done" ;;                    # S9
+            assigned) status="In Progress" ;;             # S2
             labeled)
               case "$LABEL" in
-                status:needs-research|status:needs-design) status="Research" ;;   # S2
-                status:ready)   status="Ready" ;;                                 # S3
-                status:blocked) status="Blocked" ;;                               # S4
+                status:needs-research|status:needs-design) status="Backlog" ;;
+                status:ready)       status="Backlog" ;;
+                status:in-progress) status="In Progress" ;;
+                status:in-review)   status="In Review" ;;
+                status:blocked)     status="In Progress" ;;
               esac ;;
             unlabeled)
-              # S5 — unblocking returns the card to Ready
-              [ "$LABEL" = "status:blocked" ] && status="Ready" ;;
+              [ "$LABEL" = "status:blocked" ] && status="In Progress" ;;
           esac
           echo "status=$status" >> "$GITHUB_OUTPUT"
       - name: Move card
@@ -86,19 +87,15 @@ jobs:
           status=""
           case "$ACTION" in
             opened|reopened)
-              if [ "$IS_DRAFT" = "true" ]; then status="In Progress";   # S7
-              else status="Code Review"; fi ;;                          # S8
-            ready_for_review)    status="Code Review" ;;                # S8
-            converted_to_draft)  status="In Progress" ;;                # S10
+              if [ "$IS_DRAFT" = "true" ]; then status="In Progress";   # S3
+              else status="In Review"; fi ;;                            # S4
+            ready_for_review)    status="In Review" ;;                  # S4
+            converted_to_draft)  status="In Progress" ;;                # S6
             closed)
               if [ "$MERGED" = "true" ]; then
-                case "$BASE" in
-                  dev)  status="Testing" ;;                             # S12
-                  main) status="Ready for Release" ;;                   # S14
-                  prod) status="Done" ;;
-                esac
+                status="Done"                                           # S8
               else
-                status="Backlog"                                        # S11
+                status="Backlog"                                        # S7
               fi ;;
           esac
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -120,7 +117,7 @@ jobs:
 
   review:
     name: Review events
-    # S9 — requested changes send the card back to the author
+    # S5 — requested changes send the card back to the author
     if: github.event_name == 'pull_request_review' && github.event.review.state == 'changes_requested'
     runs-on: ubuntu-latest
     steps:
@@ -154,7 +151,6 @@ jobs:
             exit 0
           fi
           case "$BRANCH" in
-            dev)  bash .github/scripts/board-sweep.sh "Testing" "QA / UAT Sign-off" ;;  # S13
-            prod) bash .github/scripts/board-sweep.sh "Ready for Release" "Done" ;;     # S15
-            *)    echo "No sweep configured for branch '$BRANCH'." ;;
+            dev|main|prod) bash .github/scripts/board-sweep.sh "In Review" "Done" ;;
+            *)             echo "No sweep configured for branch '$BRANCH'." ;;
           esac
