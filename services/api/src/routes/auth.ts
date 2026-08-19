@@ -9,6 +9,28 @@ import {
   hashRefreshToken,
   normalizeEmail,
 } from '../utils/security.js';
+import {
+  defaultOAuthRegistry,
+  generateCodeVerifier,
+  generateCodeChallenge,
+  generateOAuthState,
+  verifyOAuthState,
+} from '../oauth/index.js';
+
+const OAuthUrlQuerySchema = z.object({
+  redirectUri: z.string().url().optional(),
+  codeChallenge: z.string().optional(),
+});
+
+const OAuthCallbackSchema = z.object({
+  provider: z.string().min(1, 'Provider is required'),
+  code: z.string().min(1, 'Authorization code is required'),
+  state: z.string().min(1, 'State parameter is required'),
+  codeVerifier: z.string().optional(),
+  redirectUri: z.string().url().optional(),
+  deviceType: z.string().max(50).optional(),
+  userAgent: z.string().max(512).optional(),
+});
 
 const GuestLoginSchema = z.object({
   displayName: z.string().min(1).max(50).optional(),
@@ -419,6 +441,194 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       isGuest: user.isGuest,
       status: user.status,
       createdAt: user.createdAt,
+    });
+  });
+
+  /**
+   * GET /api/v1/auth/oauth/:provider/url
+   * Generate OAuth authorization URL, PKCE challenge, and CSRF state
+   */
+  fastify.get('/oauth/:provider/url', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    const oauthProvider = defaultOAuthRegistry.get(provider);
+
+    if (!oauthProvider) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Unsupported OAuth Provider',
+        status: 400,
+        detail: `OAuth provider '${provider}' is not supported. Supported providers: ${defaultOAuthRegistry.list().join(', ')}`,
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    const query = OAuthUrlQuerySchema.safeParse(request.query || {});
+    const redirectUri = query.success ? query.data.redirectUri : undefined;
+
+    const state = generateOAuthState(provider);
+    let codeVerifier: string | undefined;
+    let codeChallenge = query.success ? query.data.codeChallenge : undefined;
+
+    if (!codeChallenge) {
+      codeVerifier = generateCodeVerifier();
+      codeChallenge = generateCodeChallenge(codeVerifier);
+    }
+
+    const url = oauthProvider.getAuthorizationUrl({
+      state,
+      codeChallenge,
+      redirectUri,
+    });
+
+    return reply.status(200).send({
+      provider: oauthProvider.name,
+      url,
+      state,
+      codeVerifier,
+      codeChallenge,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/oauth/callback
+   * Exchange authorization code, link or create user, and issue session tokens
+   */
+  fastify.post('/oauth/callback', async (request, reply) => {
+    const parseResult = OAuthCallbackSchema.safeParse(request.body || {});
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Invalid OAuth Callback Payload',
+        status: 400,
+        detail: parseResult.error.issues[0]?.message || 'Invalid payload',
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    const { provider, code, state, codeVerifier, redirectUri, deviceType, userAgent } =
+      parseResult.data;
+
+    const oauthProvider = defaultOAuthRegistry.get(provider);
+    if (!oauthProvider) {
+      return reply.status(400).send({
+        type: 'https://huddly.app/errors/invalid-payload',
+        title: 'Unsupported OAuth Provider',
+        status: 400,
+        detail: `OAuth provider '${provider}' is not supported.`,
+        code: 'ERR_INVALID_PAYLOAD',
+      });
+    }
+
+    // Validate CSRF state
+    const stateValidation = verifyOAuthState(state, provider);
+    if (!stateValidation.valid) {
+      return reply.status(401).send({
+        type: 'https://huddly.app/errors/invalid-token',
+        title: 'Invalid or Expired OAuth State',
+        status: 401,
+        detail: stateValidation.error || 'CSRF state verification failed.',
+        code: 'ERR_INVALID_TOKEN',
+      });
+    }
+
+    // Exchange code for user profile
+    let profile;
+    try {
+      profile = await oauthProvider.exchangeCode({
+        code,
+        codeVerifier,
+        redirectUri,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Token exchange failed';
+      return reply.status(401).send({
+        type: 'https://huddly.app/errors/invalid-credentials',
+        title: 'OAuth Authentication Failed',
+        status: 401,
+        detail: message,
+        code: 'ERR_INVALID_CREDENTIALS',
+      });
+    }
+
+    const email = normalizeEmail(profile.email);
+
+    // Account linking: check if verified email matches an existing user
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    let isLinked = false;
+
+    if (user) {
+      if (user.status !== 'ACTIVE') {
+        return reply.status(403).send({
+          type: 'https://huddly.app/errors/account-inactive',
+          title: 'Account Inactive',
+          status: 403,
+          detail: 'This account has been suspended or deactivated.',
+          code: 'ERR_ACCOUNT_INACTIVE',
+        });
+      }
+      isLinked = true;
+
+      // Update avatar or display name if previously unset
+      if (!user.avatarUrl && profile.avatarUrl) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { avatarUrl: profile.avatarUrl },
+        });
+      }
+    } else {
+      // Create new user for OAuth profile
+      user = await prisma.user.create({
+        data: {
+          email,
+          displayName: profile.displayName || email.split('@')[0] || 'User',
+          avatarUrl: profile.avatarUrl || null,
+          isGuest: false,
+          status: 'ACTIVE',
+        },
+      });
+    }
+
+    // Generate new refresh token and register device session
+    const { rawToken, tokenHash } = generateRefreshToken();
+    const resolvedUserAgent = (userAgent || (request.headers['user-agent'] as string) || null) as
+      string | null;
+
+    await prisma.userDevice.create({
+      data: {
+        userId: user.id,
+        deviceType: deviceType || 'WEB',
+        userAgent: resolvedUserAgent,
+        refreshTokenHash: tokenHash,
+        lastSeenAt: new Date(),
+      },
+    });
+
+    const accessToken = fastify.jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        isGuest: user.isGuest,
+      },
+      { expiresIn: '15m' },
+    );
+
+    return reply.status(200).send({
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        isGuest: user.isGuest,
+        status: user.status,
+        createdAt: user.createdAt,
+      },
+      token: accessToken,
+      refreshToken: rawToken,
+      linked: isLinked,
     });
   });
 };

@@ -28,6 +28,11 @@ describe('@huddly/config', () => {
       LIVEKIT_URL: 'https://livekit.huddly.app',
       LIVEKIT_API_KEY: 'test-livekit-api-key-identifier',
       LIVEKIT_API_SECRET: 'test-livekit-api-secret-key-material',
+      GOOGLE_CLIENT_ID: 'test-google-client-id',
+      GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
+      GITHUB_CLIENT_ID: 'test-github-client-id',
+      GITHUB_CLIENT_SECRET: 'test-github-client-secret',
+      OAUTH_REDIRECT_BASE_URL: 'https://huddly.app',
     });
 
     expect(custom.NODE_ENV).toBe('production');
@@ -36,6 +41,11 @@ describe('@huddly/config', () => {
     expect(custom.DATABASE_URL).toBe('postgresql://user:password@localhost:5432/huddly_test');
     expect(custom.CORS_ORIGINS).toEqual(['https://huddly.app', 'https://app.huddly.app']);
     expect(custom.LIVEKIT_URL).toBe('https://livekit.huddly.app');
+    expect(custom.GOOGLE_CLIENT_ID).toBe('test-google-client-id');
+    expect(custom.GOOGLE_CLIENT_SECRET).toBe('test-google-client-secret');
+    expect(custom.GITHUB_CLIENT_ID).toBe('test-github-client-id');
+    expect(custom.GITHUB_CLIENT_SECRET).toBe('test-github-client-secret');
+    expect(custom.OAUTH_REDIRECT_BASE_URL).toBe('https://huddly.app');
   });
 
   it('rejects short JWT_SECRET (< 32 chars)', () => {

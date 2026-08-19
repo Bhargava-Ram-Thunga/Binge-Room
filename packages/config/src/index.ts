@@ -39,6 +39,11 @@ export const ConfigSchema = z.object({
   LIVEKIT_URL: z.string().url().optional(),
   LIVEKIT_API_KEY: z.string().min(1).optional(),
   LIVEKIT_API_SECRET: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  OAUTH_REDIRECT_BASE_URL: z.string().url().default('http://localhost:5173'),
 });
 
 export type HuddlyConfig = z.infer<typeof ConfigSchema>;
