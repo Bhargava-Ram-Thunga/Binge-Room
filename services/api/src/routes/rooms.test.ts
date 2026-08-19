@@ -28,6 +28,17 @@ interface MockRoomMember {
   leftAt?: Date | null;
 }
 
+interface MockRoomInvite {
+  id: string;
+  roomId: string;
+  code: string;
+  createdByUserId: string;
+  maxUses: number | null;
+  usesCount: number;
+  expiresAt: Date | null;
+  createdAt: Date;
+}
+
 interface MockRoom {
   id: string;
   roomCode: string;
@@ -48,6 +59,7 @@ interface MockRoom {
 const mockUsers = new Map<string, MockUser>();
 const mockRooms = new Map<string, MockRoom>();
 const mockRoomMembers = new Map<string, MockRoomMember[]>();
+const mockInvites = new Map<string, MockRoomInvite>();
 
 vi.mock('ioredis', () => {
   class MockRedis {
@@ -220,6 +232,58 @@ vi.mock('@huddly/database', () => {
           },
         ),
       },
+      roomInvite: {
+        create: vi.fn().mockImplementation(
+          async ({
+            data,
+          }: {
+            data: {
+              roomId: string;
+              code: string;
+              createdByUserId: string;
+              maxUses: number | null;
+              expiresAt: Date | null;
+            };
+          }) => {
+            const invite: MockRoomInvite = {
+              id: randomUUID(),
+              roomId: data.roomId,
+              code: data.code,
+              createdByUserId: data.createdByUserId,
+              maxUses: data.maxUses,
+              usesCount: 0,
+              expiresAt: data.expiresAt,
+              createdAt: new Date(),
+            };
+            mockInvites.set(invite.code, invite);
+            return invite;
+          },
+        ),
+        findUnique: vi.fn().mockImplementation(async ({ where }: { where: { code: string } }) => {
+          return mockInvites.get(where.code) || null;
+        }),
+        update: vi
+          .fn()
+          .mockImplementation(
+            async ({
+              where,
+              data,
+            }: {
+              where: { id: string };
+              data: { usesCount?: { increment?: number } };
+            }) => {
+              for (const inv of mockInvites.values()) {
+                if (inv.id === where.id) {
+                  if (data.usesCount?.increment) {
+                    inv.usesCount += data.usesCount.increment;
+                  }
+                  return inv;
+                }
+              }
+              throw new Error('Invite not found');
+            },
+          ),
+      },
       roomMember: {
         findUnique: vi
           .fn()
@@ -227,11 +291,40 @@ vi.mock('@huddly/database', () => {
             async ({
               where,
             }: {
-              where: { roomId_userId?: { roomId: string; userId: string } };
+              where: { id?: string; roomId_userId?: { roomId: string; userId: string } };
             }) => {
-              if (!where.roomId_userId) return null;
-              const list = mockRoomMembers.get(where.roomId_userId.roomId) || [];
-              return list.find((m) => m.userId === where.roomId_userId!.userId) || null;
+              if (where.roomId_userId) {
+                const list = mockRoomMembers.get(where.roomId_userId.roomId) || [];
+                return list.find((m) => m.userId === where.roomId_userId!.userId) || null;
+              }
+              if (where.id) {
+                for (const list of mockRoomMembers.values()) {
+                  const found = list.find((m) => m.id === where.id);
+                  if (found) return found;
+                }
+              }
+              return null;
+            },
+          ),
+        update: vi
+          .fn()
+          .mockImplementation(
+            async ({
+              where,
+              data,
+            }: {
+              where: { id: string };
+              data: { status?: string; leftAt?: Date | null };
+            }) => {
+              for (const list of mockRoomMembers.values()) {
+                const member = list.find((m) => m.id === where.id);
+                if (member) {
+                  if (data.status !== undefined) member.status = data.status;
+                  if (data.leftAt !== undefined) member.leftAt = data.leftAt;
+                  return member;
+                }
+              }
+              throw new Error('Member not found');
             },
           ),
         upsert: vi
@@ -269,7 +362,7 @@ vi.mock('@huddly/database', () => {
   };
 });
 
-describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
+describe('Room Management Endpoints (ROOM-001, ROOM-002, ROOM-003, ROOM-004)', () => {
   let fastify: FastifyInstance;
   let hostToken: string;
   let otherToken: string;
@@ -286,6 +379,7 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
     mockUsers.clear();
     mockRooms.clear();
     mockRoomMembers.clear();
+    mockInvites.clear();
 
     mockUsers.set(hostId, {
       id: hostId,
@@ -421,6 +515,66 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
     });
   });
 
+  describe('POST /api/v1/rooms/:id/invites (ROOM-002 & ROOM-003)', () => {
+    it('allows host to generate invite link with max uses and expiration', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Invite Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const inviteRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/invites`,
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { expiresInSeconds: 3600, maxUses: 5 },
+      });
+
+      expect(inviteRes.statusCode).toBe(201);
+      const body = inviteRes.json();
+      expect(body.roomId).toBe(roomId);
+      expect(body.code).toMatch(/^[0-9a-zA-Z]{8}$/);
+      expect(body.inviteUrl).toContain(`/join/${body.code}`);
+      expect(body.maxUses).toBe(5);
+      expect(body.usesCount).toBe(0);
+      expect(body.expiresAt).not.toBeNull();
+    });
+
+    it('rejects non-host attempts to generate invite links with 403 Forbidden', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Host Only Invites' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const inviteRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/invites`,
+        headers: { authorization: `Bearer ${otherToken}` },
+        payload: { maxUses: 3 },
+      });
+
+      expect(inviteRes.statusCode).toBe(403);
+      expect(inviteRes.json().code).toBe('ERR_FORBIDDEN');
+    });
+
+    it('rejects invite generation for non-existent room with 404', async () => {
+      const inviteRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${randomUUID()}/invites`,
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { maxUses: 3 },
+      });
+
+      expect(inviteRes.statusCode).toBe(404);
+      expect(inviteRes.json().code).toBe('ERR_ROOM_NOT_FOUND');
+    });
+  });
+
   describe('GET /api/v1/rooms/:code (Resolution & Public Access)', () => {
     it('resolves room by 8-character roomCode without authentication', async () => {
       const createRes = await fastify.inject({
@@ -495,7 +649,7 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
       const body = patchRes.json();
       expect(body.name).toBe('Updated Title');
       expect(body.settings.isLocked).toBe(true);
-      expect(body.settings.maxParticipants).toBe(10); // Preserved
+      expect(body.settings.maxParticipants).toBe(10);
     });
 
     it('allows host to update voice and chat permission toggles', async () => {
@@ -605,7 +759,7 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
     });
   });
 
-  describe('POST /api/v1/rooms/:id/join (Membership & Capacities)', () => {
+  describe('POST /api/v1/rooms/:id/join (Membership & Capacities & Invites)', () => {
     it('allows authenticated user to join an active room', async () => {
       const createRes = await fastify.inject({
         method: 'POST',
@@ -627,6 +781,103 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
       expect(body.role).toBe('PARTICIPANT');
     });
 
+    it('allows joining locked room using valid invite code', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Invite Bypasses Lock', settings: { isLocked: true } },
+      });
+      const { id: roomId } = createRes.json();
+
+      const inviteRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/invites`,
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { maxUses: 10 },
+      });
+      const { code: inviteCode } = inviteRes.json();
+
+      const joinRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+        payload: { inviteCode },
+      });
+
+      expect(joinRes.statusCode).toBe(200);
+      expect(joinRes.json().role).toBe('PARTICIPANT');
+
+      // Verify invite usesCount was incremented
+      const inv = mockInvites.get(inviteCode);
+      expect(inv?.usesCount).toBe(1);
+    });
+
+    it('rejects joining when invite link has expired (400 ERR_INVITE_EXPIRED)', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Expired Invite Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      // Seed an expired invite
+      const expiredCode = 'EXPIRED8';
+      mockInvites.set(expiredCode, {
+        id: randomUUID(),
+        roomId,
+        code: expiredCode,
+        createdByUserId: hostId,
+        maxUses: 10,
+        usesCount: 0,
+        expiresAt: new Date(Date.now() - 60000), // Expired 1 min ago
+        createdAt: new Date(),
+      });
+
+      const joinRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+        payload: { inviteCode: expiredCode },
+      });
+
+      expect(joinRes.statusCode).toBe(400);
+      expect(joinRes.json().code).toBe('ERR_INVITE_EXPIRED');
+    });
+
+    it('rejects joining when invite link reached max uses (400 ERR_INVITE_MAX_USES)', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Exhausted Invite Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const fullCode = 'MAXUSED8';
+      mockInvites.set(fullCode, {
+        id: randomUUID(),
+        roomId,
+        code: fullCode,
+        createdByUserId: hostId,
+        maxUses: 2,
+        usesCount: 2, // Reached max
+        expiresAt: null,
+        createdAt: new Date(),
+      });
+
+      const joinRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+        payload: { inviteCode: fullCode },
+      });
+
+      expect(joinRes.statusCode).toBe(400);
+      expect(joinRes.json().code).toBe('ERR_INVITE_MAX_USES');
+    });
+
     it('rejects unauthenticated join requests with 401', async () => {
       const createRes = await fastify.inject({
         method: 'POST',
@@ -644,7 +895,7 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
       expect(joinRes.statusCode).toBe(401);
     });
 
-    it('rejects joining a locked room with 403 Forbidden', async () => {
+    it('rejects joining a locked room without invite with 403 Forbidden', async () => {
       const createRes = await fastify.inject({
         method: 'POST',
         url: '/api/v1/rooms',
@@ -722,6 +973,129 @@ describe('Room Management Endpoints (ROOM-001 Comprehensive)', () => {
 
       expect(joinRes.statusCode).toBe(404);
       expect(joinRes.json().code).toBe('ERR_ROOM_NOT_FOUND');
+    });
+  });
+
+  describe('POST /api/v1/rooms/:id/leave & DELETE /members/:userId (ROOM-004)', () => {
+    it('allows active member to leave room (status: LEFT)', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Leaveable Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      // Join as other user
+      await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      // Leave
+      const leaveRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/leave`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      expect(leaveRes.statusCode).toBe(200);
+      expect(leaveRes.json().status).toBe('LEFT');
+
+      // Verify leave status in member store
+      const list = mockRoomMembers.get(roomId) || [];
+      const member = list.find((m) => m.userId === otherId);
+      expect(member?.status).toBe('LEFT');
+    });
+
+    it('returns 404 when leaving a room user is not in', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Unjoined Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const leaveRes = await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/leave`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      expect(leaveRes.statusCode).toBe(404);
+      expect(leaveRes.json().code).toBe('ERR_NOT_ROOM_MEMBER');
+    });
+
+    it('allows room host to kick a participant (status: KICKED)', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Kick Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      // Other user joins
+      await fastify.inject({
+        method: 'POST',
+        url: `/api/v1/rooms/${roomId}/join`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      // Host kicks other user
+      const kickRes = await fastify.inject({
+        method: 'DELETE',
+        url: `/api/v1/rooms/${roomId}/members/${otherId}`,
+        headers: { authorization: `Bearer ${hostToken}` },
+      });
+
+      expect(kickRes.statusCode).toBe(200);
+      expect(kickRes.json().status).toBe('KICKED');
+      expect(kickRes.json().userId).toBe(otherId);
+
+      const list = mockRoomMembers.get(roomId) || [];
+      const member = list.find((m) => m.userId === otherId);
+      expect(member?.status).toBe('KICKED');
+    });
+
+    it('rejects non-host attempts to kick a member with 403 Forbidden', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Non Host Kick Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const kickRes = await fastify.inject({
+        method: 'DELETE',
+        url: `/api/v1/rooms/${roomId}/members/${hostId}`,
+        headers: { authorization: `Bearer ${otherToken}` },
+      });
+
+      expect(kickRes.statusCode).toBe(403);
+      expect(kickRes.json().code).toBe('ERR_FORBIDDEN');
+    });
+
+    it('rejects host kicking themselves with 400 Bad Request', async () => {
+      const createRes = await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/rooms',
+        headers: { authorization: `Bearer ${hostToken}` },
+        payload: { name: 'Self Kick Room' },
+      });
+      const { id: roomId } = createRes.json();
+
+      const kickRes = await fastify.inject({
+        method: 'DELETE',
+        url: `/api/v1/rooms/${roomId}/members/${hostId}`,
+        headers: { authorization: `Bearer ${hostToken}` },
+      });
+
+      expect(kickRes.statusCode).toBe(400);
+      expect(kickRes.json().code).toBe('ERR_CANNOT_KICK_SELF');
     });
   });
 });
