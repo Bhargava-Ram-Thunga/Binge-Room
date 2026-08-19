@@ -41,6 +41,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ## 2. Layout Variants (Phase 9)
 
 ### 2.1 Theater Layout (Default for Media Focus)
+
 * Large central video element (80% width) with vertical participant strips and collapsible right chat drawer.
 
 ```text
@@ -55,6 +56,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### 2.2 Grid Layout (Equal Social Focus)
+
 * Video player shares screen with participant video/avatar tiles in a responsive dynamic grid.
 
 ```text
@@ -70,6 +72,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### 2.3 Speaker Focus Layout (Presentation / Commentary)
+
 * Active speaker avatar highlighted in large preview tile; video stream docked side-by-side.
 
 ```text
@@ -111,6 +114,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### Path A: Extension Detected (Seamless Direct Join)
+
 ```text
 +-------------------------------------------------------+
 |  HUDDLY                                               |
@@ -127,6 +131,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### Path B: No Extension Detected (Fallback Prompt)
+
 ```text
 +-------------------------------------------------------+
 |  HUDDLY                                               |
@@ -144,6 +149,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### Path C: Guest Join Flow (Instant Access)
+
 ```text
 +-------------------------------------------------------+
 |  HUDDLY                                               |
@@ -158,6 +164,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### Path D: Unsupported Browser (Manual Sync Mode)
+
 ```text
 +-------------------------------------------------------+
 |  HUDDLY                                               |
@@ -178,6 +185,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ## 4. Extension Popup & Permission Onboarding
 
 ### 4.1 Extension Popup UI
+
 ```text
 +-------------------------------------+
 |  HUDDLY SYNC HELPER           [v1.0]|
@@ -195,6 +203,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### 4.2 Microphone / Media Permission Modal
+
 ```text
 +-------------------------------------------------------+
 |  Enable Voice Chat Permissions                        |
@@ -213,6 +222,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ## 5. Empty and Error States
 
 ### 5.1 Room Not Found / Closed State
+
 ```text
 +-------------------------------------------------------+
 |  Room Closed or Not Found                             |
@@ -224,6 +234,7 @@ These low-fidelity specifications serve as implementation blueprints for UI deve
 ```
 
 ### 5.2 Room Full State
+
 ```text
 +-------------------------------------------------------+
 |  Room Capacity Reached                                |

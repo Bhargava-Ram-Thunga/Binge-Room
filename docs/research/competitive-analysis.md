@@ -7,7 +7,7 @@ This document evaluates existing synchronized media solutions to inform the arch
 ## 1. Competitor Comparison Matrix
 
 | Solution | Supported Sites | Participant Limits | Sync Approach | Communications | Pricing / Hosting Model | Platform Coverage | Common User Complaints & Flaws |
-|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | **Teleparty (formerly Netflix Party)** | Major commercial streaming (Netflix, Disney+, Hulu, HBO Max, YouTube) | 50 (free), up to 100 on paid tier | Client extension polling + centralized WebSocket message relay | Text chat and video reactions (paid) | Freemium ($3.99/mo subscription for premium features); Closed proprietary cloud | Chrome, Edge, Firefox (extension required for all participants) | Extension frequently desyncs on video ads; aggressive upsell prompts; high CPU usage; breaks on minor streaming UI updates. |
 | **Watch2Gether** | YouTube, Vimeo, Dailymotion, SoundCloud, direct MP4 URLs | Unlimited (practical cap ~20 before UI lag) | In-page embedded iframe API control | Text chat, webcam, audio chat (WebRTC mesh) | Free with banner ads; $3.99/mo ad-free subscription; Closed hosted service | Web application (no extension required for supported embed sites) | Does not support arbitrary web streaming sites; embedded iframes frequently blocked by copyright restrictions; heavy UI banner ads. |
 | **Metastream** | Generic web video via Chromium embedded browser / extension bridge | ~10-20 recommended | Extension content script DOM mutation + WebRTC P2P sync | Text chat only | Free; Open-source client but largely unmaintained | Desktop app / Web extension (Firefox, Chrome) | Unmaintained codebase; high latency on P2P mesh; complex setup; extension breaks frequently on modern manifest updates. |
@@ -46,11 +46,11 @@ Building Huddly addresses specific frustrations encountered when using commercia
 
 To keep Huddly maintainable and achievable as a single-operator project, the following features are explicitly out of scope:
 
-* **Remote Virtual Browser Streaming (Hyperbeam model)**:
+- **Remote Virtual Browser Streaming (Hyperbeam model)**:
   - Running remote headless Chromium instances in the cloud to capture and re-encode video feeds requires significant GPU/CPU server infrastructure and massive outbound bandwidth costs. Huddly uses lightweight client-side DOM synchronization instead.
-* **Direct DRM Decryption / Stream Re-broadcasting**:
+- **Direct DRM Decryption / Stream Re-broadcasting**:
   - Huddly never decrypts or restreams protected media content. All participants must have independent legal access to the media source URL.
-* **Complex Multi-Tenant Billing or Subscription Systems**:
+- **Complex Multi-Tenant Billing or Subscription Systems**:
   - Huddly is built for private and personal group use, eliminating the need for Stripe billing integrations, team plans, or usage metering tiers.
-* **Mobile Native App Development**:
+- **Mobile Native App Development**:
   - Native iOS and Android apps require separate codebases and App Store review pipelines. Mobile support is scoped strictly to responsive web viewing and Safari/Chrome mobile browser compatibility.

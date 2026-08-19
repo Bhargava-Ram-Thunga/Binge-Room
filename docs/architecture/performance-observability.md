@@ -7,7 +7,7 @@ This document establishes the measurable performance targets, telemetry instrume
 ## 1. Performance Target Mapping Matrix
 
 | Domain & Feature | Spec Performance Target | Concrete Metric | Measurement / Collection Point | Alerting / Degradation Threshold |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **Playback Sync** | Playback drift < 150ms steady-state | `huddly_sync_drift_ms` (p50, p95, p99) | Client sync loop in `@huddly/sync-engine` reported via periodic heartbeat ping | Drift > 500ms triggers nudge rate adjustment; > 1.0s triggers hard seek |
 | **State Propagation** | End-to-end command broadcast < 50ms | `huddly_ws_event_delivery_latency_ms` | WebSocket Gateway (`@huddly/realtime`) emit timestamp to client ack | Gateway latency > 150ms flags network congestion |
 | **Chat Message Latency** | Realtime message delivery < 200ms | `huddly_chat_delivery_latency_ms` | API gateway ingestion to broadcast fan-out in `@huddly/realtime` | Ingestion lag > 500ms |
@@ -32,7 +32,9 @@ For personal and single-operator hosting, the observability pipeline is kept lig
 ```
 
 ### 2.1 Structured Logging Standards (Pino)
+
 * All backend services (`@huddly/api`, `@huddly/realtime`) format logs as JSON containing structured context:
+
   ```json
   {
     "level": "info",
@@ -47,6 +49,7 @@ For personal and single-operator hosting, the observability pipeline is kept lig
   ```
 
 ### 2.2 Telemetry Instrumentation Endpoints
+
 * **`GET /health`**: Returns HTTP 200 with service readiness (`{ status: "ok", uptime: 3600 }`).
 * **`GET /metrics`**: Prometheus-compatible metrics endpoint exposing counters, histograms, and memory gauges.
 
@@ -57,10 +60,10 @@ For personal and single-operator hosting, the observability pipeline is kept lig
 To preserve privacy for personal watch parties and minimize server storage overhead, the logging pipeline strictly enforces the following boundaries:
 
 1. **Do NOT Log Chat Message Contents**:
-   - Chat payloads are transmitted over WebSockets for display, but message strings are never printed into server logs. Only metadata (`roomId`, `userId`, `messageId`, `characterCount`) is recorded.
+   * Chat payloads are transmitted over WebSockets for display, but message strings are never printed into server logs. Only metadata (`roomId`, `userId`, `messageId`, `characterCount`) is recorded.
 2. **Do NOT Store Raw IP Addresses Long-Term**:
-   - IP addresses in HTTP/WebSocket headers are retained in memory for rate limiting and short-lived connection debugging, but are not stored in persistent database tables.
+   * IP addresses in HTTP/WebSocket headers are retained in memory for rate limiting and short-lived connection debugging, but are not stored in persistent database tables.
 3. **Do NOT Capture Video Media or Stream URLs**:
-   - Private media URLs (e.g. personal local streaming links) are kept in memory during the room session and pruned when the room closes.
+   * Private media URLs (e.g. personal local streaming links) are kept in memory during the room session and pruned when the room closes.
 4. **Do NOT Log Authentication Secrets**:
-   - Passwords, raw JWTs, refresh tokens, and connection ticket secrets are redacted before log output (`[REDACTED]`).
+   * Passwords, raw JWTs, refresh tokens, and connection ticket secrets are redacted before log output (`[REDACTED]`).
