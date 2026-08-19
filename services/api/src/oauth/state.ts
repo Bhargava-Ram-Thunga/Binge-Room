@@ -9,14 +9,20 @@ export interface OAuthStatePayload {
 
 const STATE_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes
 
+function getSigningKey(customKey?: string): Buffer {
+  const base = customKey || config.JWT_SECRET;
+  return crypto.createHash('sha256').update(`huddly-oauth-state-signing-key:${base}`).digest();
+}
+
 /**
  * Generate an HMAC-signed state parameter to prevent CSRF attacks
  */
-export function generateOAuthState(provider: string, secret = config.JWT_SECRET): string {
+export function generateOAuthState(provider: string, customKey?: string): string {
   const nonce = crypto.randomBytes(16).toString('hex');
   const timestamp = Date.now();
   const raw = `${provider.toLowerCase()}:${nonce}:${timestamp}`;
-  const signature = crypto.createHmac('sha256', secret).update(raw).digest('base64url');
+  const key = getSigningKey(customKey);
+  const signature = crypto.createHmac('sha256', key).update(raw).digest('base64url');
 
   const token = Buffer.from(raw).toString('base64url');
   return `${token}.${signature}`;
@@ -28,7 +34,7 @@ export function generateOAuthState(provider: string, secret = config.JWT_SECRET)
 export function verifyOAuthState(
   state: string,
   expectedProvider: string,
-  secret = config.JWT_SECRET,
+  customKey?: string,
   maxAgeMs = STATE_MAX_AGE_MS,
 ): { valid: boolean; error?: string } {
   if (!state || typeof state !== 'string') {
@@ -48,7 +54,8 @@ export function verifyOAuthState(
     return { valid: false, error: 'Invalid state encoding' };
   }
 
-  const expectedSignature = crypto.createHmac('sha256', secret).update(raw).digest('base64url');
+  const key = getSigningKey(customKey);
+  const expectedSignature = crypto.createHmac('sha256', key).update(raw).digest('base64url');
 
   if (signature.length !== expectedSignature.length) {
     return { valid: false, error: 'State signature mismatch' };
