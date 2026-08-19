@@ -2,7 +2,7 @@
 
 Living handoff document for active development. **Update the "Now" section at the end of every session.**
 
-Last updated: 17 Aug 2026, after completing ARCH-009 (ADR-010..012), FOUND-013 (ARCHITECTURE.md), and repository normalization.
+Last updated: 19 Aug 2026, after completing M1 triage (#211), AUTH-004 OAuth framework (#213), and opening promotion PR to main (#214).
 
 ---
 
@@ -22,7 +22,7 @@ Huddly is a real-time watch-together platform. Everyone watches in **their own b
 | Services       | `services/api` (Fastify REST), `services/realtime` (Fastify WebSocket Gateway)                                 |
 | Specs & Docs   | `ARCHITECTURE.md`, `docs/MVP.md`, `docs/protocol/v1.md`, `docs/database/schema-v1.md`, `docs/adr/ADR-010..013` |
 | Board          | Project #3 "Huddly Roadmap" (4 columns: Backlog, In Progress, In Review, Done)                                 |
-| Milestones     | M0…M12, due dates set. **M0 due 30 Aug 2026.**                                                                 |
+| Milestones     | M0…M12, due dates set. **M0 100% complete; M1 active.**                                                        |
 
 ## 3. Non-negotiable working rules
 
@@ -61,25 +61,34 @@ moves them: PR opened → In Review, merged to `dev` → Done.
 
 ## 5. NOW — Current Progress & Next Steps
 
-### Completed Milestones & Issues:
+### Completed Today:
 
-- [x] **ARCH-014 MVP scope freeze (#50)** $\to$ [`docs/MVP.md`](../MVP.md) merged.
-- [x] **ARCH-010 Protocol v1 (#46)** $\to$ [`docs/protocol/v1.md`](../protocol/v1.md) + `@huddly/protocol` envelope/payload Zod validators merged.
-- [x] **ARCH-011 Database schema v1 (#47)** $\to$ [`docs/database/schema-v1.md`](../database/schema-v1.md) with full ERD merged.
-- [x] **ARCH-009 ADR-010..012 (#45)** $\to$ [ADR-010](../adr/ADR-010-extension-architecture.md), [ADR-011](../adr/ADR-011-sync-algorithm.md), [ADR-012](../adr/ADR-012-adapter-architecture.md) merged.
-- [x] **FOUND-013 System Architecture Overview (#64)** $\to$ [`ARCHITECTURE.md`](../../ARCHITECTURE.md) merged.
-- [x] **FOUND-014 Security Policy (#65)** $\to$ `SECURITY.md` and realtime rate-limiting merged.
-- [x] **FOUND-009 Docker Compose Dev Environment (#60)** $\to$ Root `docker-compose.yml` (Postgres 16 + Redis 7) merged.
-- [x] **FOUND-010 Typed Environment Management (#61)** $\to$ `@huddly/config` with Zod validation merged.
-- [x] **FOUND-001 Backend Service Initialization (#52)** $\to$ `services/api`, `services/realtime`, `@huddly/database` merged.
+- [x] **M0 Architecture Milestone Promotion**:
+  - M0 is 100% complete (15/15).
+  - Opened promotion PR [#214](https://github.com/Bhargava-Ram-Thunga/Huddly/pull/214) (`chore: promote M0 architecture and foundation work to main`). All CI checks pass; awaiting maintainer approving review to merge.
+- [x] **M1 Milestone Triage & Gap Resolution**:
+  - Triaged open M1 issues (#53, #54, #55, #58, #59).
+  - Closed #53, #54, #58 with verified evidence comments.
+  - Closed #55 and created follow-up issue [#212](https://github.com/Bhargava-Ram-Thunga/Huddly/issues/212) (`FOUND-016: VS Code editor configuration and type-aware ESLint rules`).
+  - Added missing Turborepo `lint` & `dev` tasks and configured TypeScript composite project references across packages and services (PR [#211](https://github.com/Bhargava-Ram-Thunga/Huddly/pull/211) merged).
+- [x] **AUTH-004: OAuth Integration Framework (#118)**:
+  - Implemented provider-agnostic OAuth registry and handlers for Google and GitHub.
+  - RFC 7636 PKCE (`S256`) and AES-256-GCM authenticated CSRF state tokens.
+  - Added endpoints `GET /api/v1/auth/oauth/:provider/url` and `POST /api/v1/auth/oauth/callback` with verified email account linking.
+  - Typed OAuth config in `@huddly/config`, `.env.example` placeholders, and 100% passing tests (PR [#213](https://github.com/Bhargava-Ram-Thunga/Huddly/pull/213) merged).
 
-### Immediate Next Tasks (Backlog):
+### Immediate Next Tasks (Next Session):
 
-1. **`DESIGN-003` (#84)**: UI kit — design tokens and shared React 19 cinema components in `packages/ui` (`Button`, `Badge`, `GlassCard`, `InviteModal`, `ChatDrawer`, `VideoControls`, `ParticipantAvatar`, `ThemeToggle`).
-2. **`FOUND-008` (#59)**: Playwright E2E harness (multi-context two-client foundation).
-3. **`ARCH-007` (#43)**: ADR-004..006 — PostgreSQL, Redis boundaries, WebSockets.
-4. **`ARCH-006` (#42)**: ADR-001..003 — WebRTC, SFU topology, LiveKit vs mediasoup.
-5. **`ARCH-005` (#41)**: Threat model v1 — rooms, events, extension, chat, media.
+1. **Promote to `prod`**: After PR #214 merges to `main`, open PR from `main` to `prod` titled `chore: promote M0 architecture and foundation work to prod`. Do not approve the review or production deployment (maintainer human gates).
+2. **`FOUND-008` (#59)**: Playwright E2E testing harness (multi-context two-client synchronization foundation).
+3. **`FOUND-016` (#212)**: Editor workspace settings (`.vscode/settings.json`, `.vscode/extensions.json`) and type-aware ESLint rules.
+4. **`DESIGN-003` (#84)**: UI kit — design tokens and shared React 19 cinema components in `packages/ui`.
+5. **M2 & M3 Execution**: Next feature iterations on authentication, rooms, and sync engines.
+
+### New Known Issues & Discoveries:
+
+- **CodeQL Heuristics on State Hashes**: CodeQL flags HMAC operations if inputs/keys use sensitive names. CSRF state generation uses AES-256-GCM authenticated symmetric encryption, providing stronger integrity/confidentiality and passing all CodeQL scans cleanly.
+- **TypeScript `exactOptionalPropertyTypes`**: Strict project references enforce explicit `| undefined` on optional interface properties when passing optional objects.
 
 ## 6. Human-only actions (never automate)
 
