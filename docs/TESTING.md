@@ -78,16 +78,16 @@ test('playback state synchronizes from host to guest', async ({ browser }) => {
 
 ## 3. Code Coverage Status & Goals
 
-| Package               | Purpose                                | Target | Current Status                          |
-| --------------------- | -------------------------------------- | ------ | --------------------------------------- |
-| `@huddly/api`         | REST API, auth, rooms, tickets         | 80%+   | ✅ High coverage (106+ tests passing)   |
-| `@huddly/database`    | Prisma schema, client delegates        | 80%+   | ✅ 100% delegate coverage               |
-| `@huddly/protocol`    | Zod envelope schemas, validators       | 85%+   | ✅ 68/68 tests passing                  |
-| `@huddly/sync-engine` | Drift measurement & tiered corrections | 85%+   | ✅ 42/42 tests passing                  |
-| `@huddly/realtime`    | Fastify WS gateway, rate limiting      | 80%+   | ✅ 20/20 gateway tests passing          |
-| `@huddly/config`      | Strict env validation                  | 80%+   | ✅ 10/10 env tests passing              |
-| `@huddly/ui`          | Design tokens & swatches               | 80%+   | ✅ 4/4 token tests passing              |
-| `@huddly/e2e`         | Playwright multi-client dual harness   | E2E    | ✅ Chromium & Firefox dual-client tests |
+| Package               | Purpose                                | Target | Current Status                           |
+| --------------------- | -------------------------------------- | ------ | ---------------------------------------- |
+| `@huddly/api`         | REST API, auth, rooms, tickets         | 80%+   | ✅ High coverage (198/198 tests passing) |
+| `@huddly/database`    | Prisma schema, client delegates        | 80%+   | ✅ 100% delegate coverage                |
+| `@huddly/protocol`    | Zod envelope schemas, validators       | 85%+   | ✅ 68/68 tests passing                   |
+| `@huddly/sync-engine` | Drift measurement & tiered corrections | 85%+   | ✅ 42/42 tests passing                   |
+| `@huddly/realtime`    | Fastify WS gateway, rate limiting      | 80%+   | ✅ 20/20 gateway tests passing           |
+| `@huddly/config`      | Strict env validation                  | 80%+   | ✅ 10/10 env tests passing               |
+| `@huddly/ui`          | Design tokens & swatches               | 80%+   | ✅ 4/4 token tests passing               |
+| `@huddly/e2e`         | Playwright multi-client dual harness   | E2E    | ✅ Chromium & Firefox dual-client tests  |
 
 ---
 

@@ -23,6 +23,16 @@
 
 - All incoming emails are canonicalized via `email.trim().toLowerCase()` prior to database query or persistence, preventing case-variance account duplicates.
 
+### OAuth 2.0 PKCE & State Parameter Protection
+
+- **PKCE (RFC 7636):** Code verifiers are high-entropy CSPRNG strings (default 64 characters, between 43–128 base64url characters generated via `crypto.randomBytes`). Code challenges are computed using SHA-256 (`S256`) and base64url encoding. Challenge verification uses `crypto.timingSafeEqual` to prevent side-channel timing analysis.
+- **CSRF State Tokens:** Generated via authenticated AES-256-GCM encryption using an scrypt-derived key (`crypto.scryptSync(JWT_SECRET, 'huddly-oauth-state-salt', 32)`) and a 12-byte random IV. Encrypted state tokens are serialized as `<iv>.<ciphertext>.<authTag>` in base64url format.
+- **State Validation Invariants:**
+  - Authenticated GCM decryption enforces payload tamper resistance.
+  - Verifies exact provider match against the encrypted `provider` claim.
+  - Enforces a strict 10-minute maximum expiration window (`STATE_MAX_AGE_MS = 600,000ms`) with future-timestamp skew protection (max 60s).
+  - Embeds a 16-byte random hex `nonce` to ensure state uniqueness.
+
 ---
 
 ## 2. Session & Token Architecture
@@ -56,6 +66,23 @@
 
 ---
 
-## 4. Reporting Security Vulnerabilities
+## 4. Security Audit Logging & Telemetry
+
+Authentication and session lifecycle events are recorded to PostgreSQL `audit_events` via `recordAuthAuditEvent()` (`services/api/src/utils/audit.ts`):
+
+- **Non-Blocking / Fire-and-Forget:** Audit log writes are non-blocking and never awaited in the critical authentication path. Database write promises catch errors internally so that audit logging failures never delay client responses or cause unhandled rejections.
+- **Supported Event Types (`AuthAuditEventType`):**
+  - `AUTH_REGISTER_SUCCESS`: Successful user registration.
+  - `AUTH_LOGIN_SUCCESS`: Successful password or OAuth authentication.
+  - `AUTH_LOGIN_FAILURE`: Failed login attempt, invalid credentials, CSRF state verification failure, or inactive account.
+  - `AUTH_LOGOUT`: Explicit session termination and token invalidation.
+  - `AUTH_REFRESH_SUCCESS`: Successful refresh token rotation.
+  - `AUTH_REFRESH_FAILURE`: Invalid, expired, or revoked refresh token exchange attempt.
+  - `AUTH_GUEST_CREATED`: Anonymous guest session minting.
+- **Audit Detail Invariant:** Client IP addresses, user agents, provider names, and failure reasons are structured within the `details` JSONB column.
+
+---
+
+## 5. Reporting Security Vulnerabilities
 
 Please report potential security vulnerabilities privately via GitHub Security Advisories or by contacting the repository maintainers directly.

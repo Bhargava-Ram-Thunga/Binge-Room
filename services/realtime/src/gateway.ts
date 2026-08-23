@@ -9,6 +9,7 @@ import { prisma } from '@huddly/database';
 import {
   validateEventWithPayload,
   PROTOCOL_VERSION,
+  ERROR_CODES,
   type EventEnvelope,
   type RoomStateSnapshotPayload,
   type PlaybackSnapshot,
@@ -323,7 +324,7 @@ export async function buildGatewayApp(opts?: {
             if (meta.rateLimit.count > MAX_EVENTS_PER_SECOND) {
               socket.send(
                 JSON.stringify({
-                  error: 'RATE_LIMITED',
+                  error: ERROR_CODES.PROTOCOL_RATE_LIMITED,
                   message: 'Rate limit exceeded: maximum 25 events per second.',
                 }),
               );
@@ -338,7 +339,7 @@ export async function buildGatewayApp(opts?: {
         } catch {
           socket.send(
             JSON.stringify({
-              error: 'INVALID_JSON',
+              error: ERROR_CODES.PROTOCOL_INVALID_JSON,
               message: 'Malformed JSON message payload',
             }),
           );
@@ -362,7 +363,7 @@ export async function buildGatewayApp(opts?: {
         if (!validation.ok) {
           socket.send(
             JSON.stringify({
-              error: 'PROTOCOL_VALIDATION_FAILED',
+              error: ERROR_CODES.PROTOCOL_VALIDATION_FAILED,
               errors: validation.errors,
             }),
           );
@@ -375,7 +376,7 @@ export async function buildGatewayApp(opts?: {
         if (env.eventType.startsWith('PLAYBACK_') && clientCtx.role !== 'HOST') {
           socket.send(
             JSON.stringify({
-              error: 'FORBIDDEN',
+              error: ERROR_CODES.AUTH_FORBIDDEN,
               message: 'Only the room host can control video playback',
             }),
           );

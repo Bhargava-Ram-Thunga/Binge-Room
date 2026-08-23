@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { buildGatewayApp } from './gateway.js';
 import {
   PROTOCOL_VERSION,
+  ERROR_CODES,
   type EventEnvelope,
   type RoomStateSnapshotPayload,
   type PlaybackPlayPayload,
@@ -710,7 +711,7 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
     const rateLimitPromise = new Promise<{ error: string }>((resolve) => {
       ws.on('message', (data) => {
         const parsed = JSON.parse(data.toString());
-        if (parsed.error === 'RATE_LIMITED') resolve(parsed);
+        if (parsed.error === ERROR_CODES.PROTOCOL_RATE_LIMITED) resolve(parsed);
       });
     });
 
@@ -720,7 +721,7 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
     }
 
     const res = await rateLimitPromise;
-    expect(res.error).toBe('RATE_LIMITED');
+    expect(res.error).toBe(ERROR_CODES.PROTOCOL_RATE_LIMITED);
 
     ws.close();
   });

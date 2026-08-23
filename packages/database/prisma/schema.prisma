@@ -109,6 +109,7 @@ model Room {
   auditEvents       AuditEvent[]
 
   @@index([hostUserId])
+  @@index([status, expiresAt])
   @@map("rooms")
 }
 
@@ -158,6 +159,7 @@ model RoomMember {
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, userId])
+  @@index([userId])
   @@map("room_members")
 }
 
@@ -174,6 +176,7 @@ model RoomInvite {
   room             Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
   createdByUser    User         @relation("CreatedInvites", fields: [createdByUserId], references: [id], onDelete: Cascade)
 
+  @@index([roomId])
   @@map("room_invites")
 }
 
@@ -191,6 +194,7 @@ model MediaSession {
   playbackStates   PlaybackState[]
   playbackEvents   PlaybackEvent[]
 
+  @@index([roomId, createdAt(sort: Desc)])
   @@map("media_sessions")
 }
 
@@ -285,6 +289,8 @@ model ChatMessage {
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions        MessageReaction[]
 
+  @@index([roomId, createdAt(sort: Desc)])
+  @@index([userId])
   @@map("chat_messages")
 }
 
@@ -313,5 +319,7 @@ model AuditEvent {
   room             Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   actorUser        User?        @relation("UserAuditEvents", fields: [actorUserId], references: [id], onDelete: SetNull)
 
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([roomId, createdAt(sort: Desc)])
   @@map("audit_events")
 }

@@ -4,6 +4,7 @@ import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import { config } from '@huddly/config';
+import { REST_ERROR_CODES } from './utils/errors.js';
 import { authRoutes } from './routes/auth.js';
 import { roomRoutes } from './routes/rooms.js';
 import { ticketRoutes } from './routes/tickets.js';
@@ -45,7 +46,7 @@ export async function buildApp() {
         title: 'Unauthorized',
         status: 401,
         detail: 'Valid Bearer authentication token is required.',
-        code: 'ERR_UNAUTHORIZED',
+        code: REST_ERROR_CODES.UNAUTHORIZED,
       });
     }
   });
