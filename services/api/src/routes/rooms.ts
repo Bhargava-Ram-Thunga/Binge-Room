@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
 import { prisma, type Prisma } from '@huddly/database';
+import { REST_ERROR_CODES } from '../utils/errors.js';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 4);
 const generateInviteCode = customAlphabet(
@@ -71,7 +72,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Room Creation Request',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -185,7 +186,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Not Found',
         status: 404,
         detail: `The room with code '${code}' was not found.`,
-        code: 'ERR_ROOM_NOT_FOUND',
+        code: REST_ERROR_CODES.ROOM_NOT_FOUND,
       });
     }
 
@@ -232,7 +233,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Update Payload',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -247,7 +248,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Not Found',
         status: 404,
         detail: 'The specified room does not exist.',
-        code: 'ERR_ROOM_NOT_FOUND',
+        code: REST_ERROR_CODES.ROOM_NOT_FOUND,
       });
     }
 
@@ -257,7 +258,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Forbidden',
         status: 403,
         detail: 'Only the room host can modify settings.',
-        code: 'ERR_FORBIDDEN',
+        code: REST_ERROR_CODES.FORBIDDEN,
       });
     }
 
@@ -324,7 +325,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Not Found',
         status: 404,
         detail: 'The specified room does not exist.',
-        code: 'ERR_ROOM_NOT_FOUND',
+        code: REST_ERROR_CODES.ROOM_NOT_FOUND,
       });
     }
 
@@ -334,7 +335,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Forbidden',
         status: 403,
         detail: 'Only the room host can close the room.',
-        code: 'ERR_FORBIDDEN',
+        code: REST_ERROR_CODES.FORBIDDEN,
       });
     }
 
@@ -368,7 +369,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Invite Creation Request',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -382,7 +383,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Not Found',
         status: 404,
         detail: 'The specified room does not exist or has closed.',
-        code: 'ERR_ROOM_NOT_FOUND',
+        code: REST_ERROR_CODES.ROOM_NOT_FOUND,
       });
     }
 
@@ -392,7 +393,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Forbidden',
         status: 403,
         detail: 'Only the room host can create invite links.',
-        code: 'ERR_FORBIDDEN',
+        code: REST_ERROR_CODES.FORBIDDEN,
       });
     }
 
@@ -437,7 +438,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Join Request',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -452,7 +453,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Not Found or Closed',
         status: 404,
         detail: 'Cannot join room because it does not exist or has closed.',
-        code: 'ERR_ROOM_NOT_FOUND',
+        code: REST_ERROR_CODES.ROOM_NOT_FOUND,
       });
     }
 
@@ -470,7 +471,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Invite Not Found',
           status: 404,
           detail: 'The invite link is invalid for this room.',
-          code: 'ERR_INVITE_NOT_FOUND',
+          code: REST_ERROR_CODES.INVITE_NOT_FOUND,
         });
       }
 
@@ -480,7 +481,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Invite Expired',
           status: 400,
           detail: 'This invite link has expired.',
-          code: 'ERR_INVITE_EXPIRED',
+          code: REST_ERROR_CODES.INVITE_EXPIRED,
         });
       }
 
@@ -490,7 +491,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Invite Limit Reached',
           status: 400,
           detail: 'This invite link has reached its maximum usage limit.',
-          code: 'ERR_INVITE_MAX_USES',
+          code: REST_ERROR_CODES.INVITE_MAX_USES,
         });
       }
 
@@ -509,7 +510,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Locked',
         status: 403,
         detail: 'This room is currently locked by the host.',
-        code: 'ERR_ROOM_LOCKED',
+        code: REST_ERROR_CODES.ROOM_LOCKED,
       });
     }
 
@@ -519,7 +520,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Room Full',
         status: 409,
         detail: 'The room has reached maximum participant capacity.',
-        code: 'ERR_ROOM_FULL',
+        code: REST_ERROR_CODES.ROOM_FULL,
       });
     }
 
@@ -573,7 +574,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Not a Member',
         status: 404,
         detail: 'You are not currently an active member of this room.',
-        code: 'ERR_NOT_ROOM_MEMBER',
+        code: REST_ERROR_CODES.NOT_ROOM_MEMBER,
       });
     }
 
@@ -613,7 +614,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Room Not Found',
           status: 404,
           detail: 'The specified room does not exist or has closed.',
-          code: 'ERR_ROOM_NOT_FOUND',
+          code: REST_ERROR_CODES.ROOM_NOT_FOUND,
         });
       }
 
@@ -623,7 +624,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Forbidden',
           status: 403,
           detail: 'Only the room host can kick participants.',
-          code: 'ERR_FORBIDDEN',
+          code: REST_ERROR_CODES.FORBIDDEN,
         });
       }
 
@@ -633,7 +634,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Invalid Operation',
           status: 400,
           detail: 'The room host cannot kick themselves.',
-          code: 'ERR_CANNOT_KICK_SELF',
+          code: REST_ERROR_CODES.CANNOT_KICK_SELF,
         });
       }
 
@@ -652,7 +653,7 @@ export const roomRoutes: FastifyPluginAsync = async (fastify) => {
           title: 'Not a Member',
           status: 404,
           detail: 'The specified user is not an active member of this room.',
-          code: 'ERR_NOT_ROOM_MEMBER',
+          code: REST_ERROR_CODES.NOT_ROOM_MEMBER,
         });
       }
 

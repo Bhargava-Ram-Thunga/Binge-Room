@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { Redis } from 'ioredis';
 import { prisma } from '@huddly/database';
 import { config } from '@huddly/config';
+import { REST_ERROR_CODES } from '../utils/errors.js';
 
 const TicketRequestSchema = z.object({
   roomId: z.string().uuid(),
@@ -30,7 +31,7 @@ export const ticketRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Ticket Request',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -52,7 +53,7 @@ export const ticketRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Not a Room Member',
         status: 403,
         detail: 'User must join the room before requesting a realtime connection ticket.',
-        code: 'ERR_NOT_ROOM_MEMBER',
+        code: REST_ERROR_CODES.NOT_ROOM_MEMBER,
       });
     }
 
