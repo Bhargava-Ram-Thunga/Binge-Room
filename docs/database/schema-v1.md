@@ -127,9 +127,9 @@ erDiagram
         uuid room_id FK
         varchar media_url
         varchar media_title
-        varchar provider_name
+        varchar source_type
         double_precision duration
-        timestamptz started_at
+        timestamptz created_at
         timestamptz ended_at
     }
 
@@ -171,25 +171,25 @@ erDiagram
     chat_messages {
         uuid id PK
         uuid room_id FK
-        uuid sender_user_id FK
+        uuid user_id FK
         text content
-        varchar status
+        boolean is_system
+        boolean is_deleted
         timestamptz created_at
-        timestamptz deleted_at
     }
 
     message_reactions {
         uuid id PK
         uuid message_id FK
         uuid user_id FK
-        varchar reaction
+        varchar emoji
         timestamptz created_at
     }
 
     room_invites {
         uuid id PK
         uuid room_id FK
-        varchar invite_code UK
+        varchar code UK
         uuid created_by_user_id FK
         integer max_uses
         integer uses_count
@@ -212,11 +212,9 @@ erDiagram
         uuid id PK
         uuid room_id FK
         uuid actor_user_id FK
-        varchar event_name
-        inet ip_address
-        varchar user_agent
+        varchar event_type
+        jsonb details
         timestamptz created_at
-        jsonb metadata
     }
 ```
 
@@ -280,16 +278,16 @@ erDiagram
 | Column           | Postgres Type  | Nullable | Default             | Description & Constraints                        |
 | ---------------- | -------------- | -------- | ------------------- | ------------------------------------------------ |
 | `id`             | `UUID`         | No       | `gen_random_uuid()` | Primary Key                                      |
-| `room_code`      | `VARCHAR(16)`  | No       | —                   | Unique human-readable code for joining           |
+| `room_code`      | `VARCHAR(8)`   | No       | —                   | Unique human-readable code for joining           |
 | `name`           | `VARCHAR(100)` | No       | `'Watch Room'`      | Human-readable room title                        |
 | `host_user_id`   | `UUID`         | No       | —                   | Foreign Key $\to$ `users(id)` ON DELETE RESTRICT |
 | `status`         | `VARCHAR(32)`  | No       | `'ACTIVE'`          | Room status: `'ACTIVE'`, `'PAUSED'`, `'CLOSED'`  |
 | `last_active_at` | `TIMESTAMPTZ`  | No       | `now()`             | Updated on playback or chat activity             |
-| `expires_at`     | `TIMESTAMPTZ`  | No       | —                   | Expiration timestamp for automatic room closure  |
+| `expires_at`     | `TIMESTAMPTZ`  | Yes      | `NULL`              | Expiration timestamp for automatic room closure  |
 | `created_at`     | `TIMESTAMPTZ`  | No       | `now()`             | Room creation timestamp                          |
 | `updated_at`     | `TIMESTAMPTZ`  | No       | `now()`             | Room last modification timestamp                 |
 
-> **Entropy & Room Code Generation:** `room_code` is a collision-resistant, URL-safe alphanumeric string (e.g., `hud-7k9p-m2x4`, minimum 10 base-32 characters, $\approx 50\text{ bits of entropy}$). It prevents brute-force enumeration attacks while remaining easy for users to type.
+> **Entropy & Room Code Generation:** `room_code` is a collision-resistant, URL-safe alphanumeric string formatted as `hud-` followed by 4 base-36 characters (e.g., `hud-7k9p`). It prevents brute-force enumeration attacks while remaining easy for users to type.
 
 **Indexes & Constraints:**
 
@@ -372,21 +370,21 @@ erDiagram
 
 **Purpose:** Represents a specific media item loaded for synchronization within a room.
 
-| Column          | Postgres Type      | Nullable | Default             | Description & Constraints                       |
-| --------------- | ------------------ | -------- | ------------------- | ----------------------------------------------- |
-| `id`            | `UUID`             | No       | `gen_random_uuid()` | Primary Key                                     |
-| `room_id`       | `UUID`             | No       | —                   | Foreign Key $\to$ `rooms(id)` ON DELETE CASCADE |
-| `media_url`     | `VARCHAR(2048)`    | No       | —                   | Canonical web URL of media                      |
-| `media_title`   | `VARCHAR(255)`     | Yes      | `NULL`              | Detected title of media item                    |
-| `provider_name` | `VARCHAR(64)`      | No       | `'GENERIC_HTML5'`   | Adapter/provider identifier                     |
-| `duration`      | `DOUBLE PRECISION` | Yes      | `NULL`              | Total duration in seconds                       |
-| `started_at`    | `TIMESTAMPTZ`      | No       | `now()`             | When media was loaded in room                   |
-| `ended_at`      | `TIMESTAMPTZ`      | Yes      | `NULL`              | When media was unloaded/replaced                |
+| Column        | Postgres Type      | Nullable | Default             | Description & Constraints                       |
+| ------------- | ------------------ | -------- | ------------------- | ----------------------------------------------- |
+| `id`          | `UUID`             | No       | `gen_random_uuid()` | Primary Key                                     |
+| `room_id`     | `UUID`             | No       | —                   | Foreign Key $\to$ `rooms(id)` ON DELETE CASCADE |
+| `media_url`   | `VARCHAR(1024)`    | No       | —                   | Canonical web URL of media                      |
+| `media_title` | `VARCHAR(255)`     | Yes      | `NULL`              | Detected title of media item                    |
+| `source_type` | `VARCHAR(50)`      | No       | `'GENERIC_HTML5'`   | Adapter/provider identifier                     |
+| `duration`    | `DOUBLE PRECISION` | Yes      | `NULL`              | Total duration in seconds                       |
+| `created_at`  | `TIMESTAMPTZ`      | No       | `now()`             | When media was loaded in room                   |
+| `ended_at`    | `TIMESTAMPTZ`      | Yes      | `NULL`              | When media was unloaded/replaced                |
 
 **Indexes & Constraints:**
 
 - `pk_media_sessions`: `PRIMARY KEY (id)`
-- `idx_media_sessions_room_active`: `INDEX (room_id, started_at DESC)`
+- `idx_media_sessions_room_active`: `INDEX (room_id, created_at DESC)`
 
 ---
 
@@ -463,21 +461,21 @@ erDiagram
 
 **Purpose:** Persisted linear text messages sent inside a room.
 
-| Column           | Postgres Type | Nullable | Default             | Description & Constraints                           |
-| ---------------- | ------------- | -------- | ------------------- | --------------------------------------------------- |
-| `id`             | `UUID`        | No       | `gen_random_uuid()` | Primary Key                                         |
-| `room_id`        | `UUID`        | No       | —                   | Foreign Key $\to$ `rooms(id)` ON DELETE CASCADE     |
-| `sender_user_id` | `UUID`        | Yes      | `NULL`              | Foreign Key $\to$ `users(id)` ON DELETE SET NULL    |
-| `content`        | `TEXT`        | No       | —                   | Sanitized message text (max 2000 chars)             |
-| `status`         | `VARCHAR(32)` | No       | `'ACTIVE'`          | Message state: `'ACTIVE'`, `'DELETED'`, `'FLAGGED'` |
-| `created_at`     | `TIMESTAMPTZ` | No       | `now()`             | Creation timestamp                                  |
-| `deleted_at`     | `TIMESTAMPTZ` | Yes      | `NULL`              | Soft-deletion timestamp                             |
+| Column       | Postgres Type | Nullable | Default             | Description & Constraints                        |
+| ------------ | ------------- | -------- | ------------------- | ------------------------------------------------ |
+| `id`         | `UUID`        | No       | `gen_random_uuid()` | Primary Key                                      |
+| `room_id`    | `UUID`        | No       | —                   | Foreign Key $\to$ `rooms(id)` ON DELETE CASCADE  |
+| `user_id`    | `UUID`        | No       | —                   | Foreign Key $\to$ `users(id)` ON DELETE CASCADE  |
+| `content`    | `TEXT`        | No       | —                   | Sanitized message text                           |
+| `is_system`  | `BOOLEAN`     | No       | `false`             | True if this is an automated system announcement |
+| `is_deleted` | `BOOLEAN`     | No       | `false`             | Soft-deletion indicator                          |
+| `created_at` | `TIMESTAMPTZ` | No       | `now()`             | Creation timestamp                               |
 
 **Indexes & Constraints:**
 
 - `pk_chat_messages`: `PRIMARY KEY (id)`
 - `idx_chat_messages_room_time`: `INDEX (room_id, created_at DESC)` (for pagination)
-- `idx_chat_messages_sender`: `INDEX (sender_user_id)`
+- `idx_chat_messages_user`: `INDEX (user_id)`
 
 ---
 
@@ -490,13 +488,13 @@ erDiagram
 | `id`         | `UUID`        | No       | `gen_random_uuid()` | Primary Key                                                 |
 | `message_id` | `UUID`        | No       | —                   | Foreign Key $\to$ `chat_messages(id)` ON DELETE CASCADE     |
 | `user_id`    | `UUID`        | No       | —                   | Foreign Key $\to$ `users(id)` ON DELETE CASCADE             |
-| `reaction`   | `VARCHAR(32)` | No       | —                   | Standard unicode emoji string (e.g. `'👍'`, `'❤️'`, `'😂'`) |
+| `emoji`      | `VARCHAR(16)` | No       | —                   | Standard unicode emoji string (e.g. `'👍'`, `'❤️'`, `'😂'`) |
 | `created_at` | `TIMESTAMPTZ` | No       | `now()`             | Reaction timestamp                                          |
 
 **Indexes & Constraints:**
 
 - `pk_message_reactions`: `PRIMARY KEY (id)`
-- `uq_message_reactions_user`: `UNIQUE (message_id, user_id, reaction)` (enforces one reaction per emoji per user)
+- `uq_message_reactions_user`: `UNIQUE (message_id, user_id, emoji)` (enforces one reaction per emoji per user)
 - `idx_message_reactions_msg`: `INDEX (message_id)`
 
 ---
@@ -509,8 +507,8 @@ erDiagram
 | -------------------- | ------------- | -------- | ------------------- | ----------------------------------------------------- |
 | `id`                 | `UUID`        | No       | `gen_random_uuid()` | Primary Key                                           |
 | `room_id`            | `UUID`        | No       | —                   | Foreign Key $\to$ `rooms(id)` ON DELETE CASCADE       |
-| `invite_code`        | `VARCHAR(32)` | No       | —                   | Collision-resistant invite code (e.g. `inv_x7k9p2m4`) |
-| `created_by_user_id` | `UUID`        | Yes      | `NULL`              | Foreign Key $\to$ `users(id)` ON DELETE SET NULL      |
+| `code`               | `VARCHAR(16)` | No       | —                   | Collision-resistant invite code (e.g. `inv_x7k9p2m4`) |
+| `created_by_user_id` | `UUID`        | No       | —                   | Foreign Key $\to$ `users(id)` ON DELETE CASCADE       |
 | `max_uses`           | `INTEGER`     | Yes      | `NULL`              | Maximum allowed joins (`NULL` = unlimited)            |
 | `uses_count`         | `INTEGER`     | No       | `0`                 | Current join count                                    |
 | `expires_at`         | `TIMESTAMPTZ` | Yes      | `NULL`              | Expiration timestamp (`NULL` = never)                 |
@@ -519,7 +517,7 @@ erDiagram
 **Indexes & Constraints:**
 
 - `pk_room_invites`: `PRIMARY KEY (id)`
-- `uq_room_invites_code`: `UNIQUE (invite_code)`
+- `uq_room_invites_code`: `UNIQUE (code)`
 - `idx_room_invites_room`: `INDEX (room_id)`
 
 ---
@@ -551,16 +549,16 @@ erDiagram
 
 **Purpose:** Append-only security and operational audit trail.
 
-| Column          | Postgres Type  | Nullable | Default             | Description & Constraints                                            |
-| --------------- | -------------- | -------- | ------------------- | -------------------------------------------------------------------- |
-| `id`            | `UUID`         | No       | `gen_random_uuid()` | Primary Key                                                          |
-| `room_id`       | `UUID`         | Yes      | `NULL`              | Foreign Key $\to$ `rooms(id)` ON DELETE SET NULL                     |
-| `actor_user_id` | `UUID`         | Yes      | `NULL`              | Foreign Key $\to$ `users(id)` ON DELETE SET NULL                     |
-| `event_name`    | `VARCHAR(64)`  | No       | —                   | Event name (e.g. `'AUTH_LOGIN'`, `'ROOM_CREATED'`, `'ROLE_CHANGED'`) |
-| `ip_address`    | `INET`         | Yes      | `NULL`              | Client IP address                                                    |
-| `user_agent`    | `VARCHAR(512)` | Yes      | `NULL`              | Client user agent                                                    |
-| `created_at`    | `TIMESTAMPTZ`  | No       | `now()`             | Timestamp of audit event                                             |
-| `metadata`      | `JSONB`        | Yes      | `'{}'::jsonb`       | Additional contextual details                                        |
+| Column          | Postgres Type | Nullable | Default             | Description & Constraints                                                      |
+| --------------- | ------------- | -------- | ------------------- | ------------------------------------------------------------------------------ |
+| `id`            | `UUID`        | No       | `gen_random_uuid()` | Primary Key                                                                    |
+| `room_id`       | `UUID`        | Yes      | `NULL`              | Foreign Key $\to$ `rooms(id)` ON DELETE SET NULL                               |
+| `actor_user_id` | `UUID`        | Yes      | `NULL`              | Foreign Key $\to$ `users(id)` ON DELETE SET NULL                               |
+| `event_type`    | `VARCHAR(50)` | No       | —                   | Event name (e.g. `'AUTH_LOGIN_SUCCESS'`, `'AUTH_REGISTER_SUCCESS'`)            |
+| `details`       | `JSONB`       | No       | `'{}'::jsonb`       | Event metadata including client IP address, user agent, and contextual payload |
+| `created_at`    | `TIMESTAMPTZ` | No       | `now()`             | Timestamp of audit event                                                       |
+
+> **Audit Details Architecture:** Client IP addresses, user agents, device classes, and event metadata are encapsulated within the `details` JSONB column rather than separate relational columns, enabling extensible, non-blocking telemetry writes (`recordAuthAuditEvent()`) without schema changes.
 
 **Indexes & Constraints:**
 
