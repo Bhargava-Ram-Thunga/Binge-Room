@@ -4,7 +4,12 @@ import { WebSocket } from 'ws';
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
 import { buildGatewayApp } from './gateway.js';
-import { PROTOCOL_VERSION, type EventEnvelope } from '@huddly/protocol';
+import {
+  PROTOCOL_VERSION,
+  type EventEnvelope,
+  type RoomStateSnapshotPayload,
+  type PlaybackPlayPayload,
+} from '@huddly/protocol';
 import type { Redis } from 'ioredis';
 import type { AddressInfo } from 'net';
 
@@ -251,9 +256,9 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
 
     const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws?ticket=${ticket}`);
 
-    const messagePromise = new Promise<EventEnvelope<'ROOM_STATE_SNAPSHOT'>>((resolve) => {
+    const messagePromise = new Promise<EventEnvelope<RoomStateSnapshotPayload>>((resolve) => {
       ws.on('message', (data) => {
-        resolve(JSON.parse(data.toString()));
+        resolve(JSON.parse(data.toString()) as EventEnvelope<RoomStateSnapshotPayload>);
       });
     });
 
@@ -337,9 +342,9 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
       ws.once('message', () => resolve()); // Ignore snapshot
     });
 
-    const eventPromise = new Promise<EventEnvelope<'PLAYBACK_PLAY'>>((resolve) => {
+    const eventPromise = new Promise<EventEnvelope<PlaybackPlayPayload>>((resolve) => {
       ws.on('message', (data) => {
-        const parsed = JSON.parse(data.toString());
+        const parsed = JSON.parse(data.toString()) as EventEnvelope<PlaybackPlayPayload>;
         if (parsed.eventType === 'PLAYBACK_PLAY') resolve(parsed);
       });
     });
@@ -439,9 +444,9 @@ describe('Realtime Sync Gateway (@huddly/realtime)', () => {
 
     const ws = new WebSocket(`ws://127.0.0.1:${serverPort}/ws?ticket=${ticket}`);
 
-    const snapshotPromise = new Promise<EventEnvelope<'ROOM_STATE_SNAPSHOT'>>((resolve) => {
+    const snapshotPromise = new Promise<EventEnvelope<RoomStateSnapshotPayload>>((resolve) => {
       ws.on('message', (data) => {
-        const msg = JSON.parse(data.toString());
+        const msg = JSON.parse(data.toString()) as EventEnvelope<RoomStateSnapshotPayload>;
         if (msg.eventType === 'ROOM_STATE_SNAPSHOT') resolve(msg);
       });
     });

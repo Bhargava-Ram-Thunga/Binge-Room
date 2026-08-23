@@ -11,6 +11,5 @@
     { "path": "../../packages/sync-engine" },
     { "path": "../../packages/database" }
   ],
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": ["src/**/*"]
 }

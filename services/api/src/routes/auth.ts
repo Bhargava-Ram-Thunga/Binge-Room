@@ -103,8 +103,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     // Hash password with Argon2id
     const passwordHash = await hashPassword(password);
     const { rawToken, tokenHash } = generateRefreshToken();
-    const resolvedUserAgent = (userAgent || (request.headers['user-agent'] as string) || null) as
-      string | null;
+    const resolvedUserAgent = userAgent || request.headers['user-agent'] || null;
 
     // Create user and device record atomically
     const user = await prisma.user.create({
@@ -207,8 +206,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Generate new refresh token and register device session
     const { rawToken, tokenHash } = generateRefreshToken();
-    const resolvedUserAgent = (userAgent || (request.headers['user-agent'] as string) || null) as
-      string | null;
+    const resolvedUserAgent = userAgent || request.headers['user-agent'] || null;
 
     await prisma.userDevice.create({
       data: {
@@ -593,8 +591,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Generate new refresh token and register device session
     const { rawToken, tokenHash } = generateRefreshToken();
-    const resolvedUserAgent = (userAgent || (request.headers['user-agent'] as string) || null) as
-      string | null;
+    const resolvedUserAgent = userAgent || request.headers['user-agent'] || null;
 
     await prisma.userDevice.create({
       data: {
