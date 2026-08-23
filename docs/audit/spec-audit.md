@@ -60,7 +60,7 @@ The following risks are evaluated for the single-operator build scope, tracking 
 1. **Drift Divergence from Network Jitter (Resolved by ADR-011)**: Addressed via tiered correction thresholds (ignore under 150ms, nudge rate between 150ms-1s, seek jump above 1s).
 2. **Database Write Saturation from Playback Ticks (Resolved by ADR-004 & ADR-005)**: Addressed by keeping sub-second playback state exclusively in Redis memory and persisting only lifecycle boundaries to PostgreSQL.
 3. **Audio Bandwidth and CPU Exhaustion (Resolved by ADR-001, ADR-002, ADR-003)**: Addressed by adopting a centralized LiveKit SFU topology instead of full-mesh P2P.
-4. **Service Worker Termination in Chromium MV3 (Resolved by ADR-010)**: Addressed by offloading persistent WebSocket connections to the web app tab and utilizing offscreen documents / tab messaging for extension bridging.
+4. **Service Worker Termination in Chromium MV3 (Resolved by ADR-010)**: Addressed by maintaining the central WebSocket in the Background Service Worker with a 20-second port keep-alive heartbeat (`chrome.runtime.Port`) from active tabs.
 5. **Schema Contract Drift between Backend and Client (Resolved by ADR-007)**: Addressed by sharing `@huddly/protocol` Zod schemas across all packages in the Turborepo monorepo.
 6. **Cross-Site Scripting (XSS) via Chat and Link Previews (Open - Phase 7 Chat)**: Requires strict DOMPurify rendering, markdown plain-text restrictions, and sanitized OpenGraph preview parsers.
 7. **Host Disconnection Freezing Playback State (Open - Phase 3 Rooms)**: Requires controller auto-delegation to next senior participant when host heartbeats expire.
