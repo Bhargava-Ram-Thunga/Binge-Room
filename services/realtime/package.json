@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "dependencies": {
     "@fastify/websocket": "^11.0.2",
     "@huddly/config": "workspace:*",
