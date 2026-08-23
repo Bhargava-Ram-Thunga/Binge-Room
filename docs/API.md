@@ -190,6 +190,83 @@ Retrieve current authenticated profile.
 
 ---
 
+### GET `/api/v1/auth/oauth/:provider/url`
+
+Generate an OAuth authorization URL, PKCE challenge, and CSRF state token for third-party identity providers (`google`, `discord`, `github`).
+
+**Path Parameters:**
+
+- `provider`: Target OAuth provider name (`google`, `discord`, `github`).
+
+**Query Parameters:**
+
+- `redirectUri` (optional): Client redirect callback URI.
+- `codeChallenge` (optional): PKCE code challenge. If omitted, the server automatically generates a PKCE code verifier and S256 challenge.
+
+**Response: `200 OK`**
+
+```json
+{
+  "provider": "google",
+  "url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=...&response_type=code&redirect_uri=...&scope=...&state=...&code_challenge=...&code_challenge_method=S256",
+  "state": "<aes_256_gcm_encrypted_state_token>",
+  "codeVerifier": "<high_entropy_pkce_verifier>",
+  "codeChallenge": "<sha256_base64url_challenge>"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` (`ERR_INVALID_PAYLOAD`): Unsupported OAuth provider or invalid query parameters.
+
+---
+
+### POST `/api/v1/auth/oauth/callback`
+
+Exchange an OAuth authorization code, link or create user profile, and issue session tokens (JWT access token and refresh token).
+
+**Request Body:**
+
+```json
+{
+  "provider": "google",
+  "code": "4/0AY0e-g7ExampleAuthorizationCode...",
+  "state": "<aes_256_gcm_encrypted_state_token>",
+  "codeVerifier": "<high_entropy_pkce_verifier>",
+  "redirectUri": "https://huddly.app/auth/callback",
+  "deviceType": "WEB",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+}
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "user": {
+    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "email": "user@example.com",
+    "displayName": "Alice",
+    "avatarUrl": "https://lh3.googleusercontent.com/a/example",
+    "isGuest": false,
+    "status": "ACTIVE",
+    "createdAt": "2026-08-17T12:00:00.000Z"
+  },
+  "token": "<jwt_access_token>",
+  "refreshToken": "<refresh_token>",
+  "linked": false
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` (`ERR_INVALID_PAYLOAD`): Missing required fields (`provider`, `code`, `state`) or unsupported provider.
+- `401 Unauthorized` (`ERR_INVALID_TOKEN`): Invalid, expired, or tampered CSRF state token.
+- `401 Unauthorized` (`ERR_INVALID_CREDENTIALS`): Identity provider token exchange failed or rejected authorization code.
+- `403 Forbidden` (`ERR_ACCOUNT_INACTIVE`): Existing linked user account is suspended or deactivated.
+
+---
+
 ## Room Endpoints (`/api/v1/rooms`)
 
 ### POST `/api/v1/rooms`
