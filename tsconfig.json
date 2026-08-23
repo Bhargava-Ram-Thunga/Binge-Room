@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/protocol" },
+    { "path": "packages/config" },
+    { "path": "packages/database" },
+    { "path": "packages/sync-engine" },
+    { "path": "packages/ui" },
+    { "path": "services/api" },
+    { "path": "services/realtime" },
+    { "path": "apps/e2e" }
+  ]
+}
