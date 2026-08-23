@@ -117,7 +117,7 @@ export function validateEnvelope(input: unknown): ValidationResult<EventEnvelope
     return { ok: false, errors };
   }
 
-  return { ok: true, value: result.data as EventEnvelope };
+  return { ok: true, value: result.data };
 }
 
 /**

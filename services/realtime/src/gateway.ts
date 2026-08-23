@@ -192,7 +192,7 @@ export async function buildGatewayApp(opts?: {
       memberId: m.id,
       userId: m.userId,
       displayName: m.user?.displayName || 'Anonymous',
-      role: (m.role as 'HOST' | 'PARTICIPANT') || 'PARTICIPANT',
+      role: m.role || 'PARTICIPANT',
       presence: 'ONLINE' as const,
     }));
 
@@ -212,7 +212,7 @@ export async function buildGatewayApp(opts?: {
     try {
       const stateJson = await redisState.get(`room:${roomId}:state`);
       if (stateJson) {
-        playbackState = JSON.parse(stateJson);
+        playbackState = JSON.parse(stateJson) as PlaybackStateStore;
       } else {
         playbackState = null;
       }
@@ -309,205 +309,209 @@ export async function buildGatewayApp(opts?: {
     await redisPubSub.publish(`room:${roomId}`, JSON.stringify(joinPresenceEnvelope));
 
     // Handle Incoming WebSocket Messages
-    socket.on('message', async (data: Buffer | string) => {
-      const receiveTime = Date.now();
+    socket.on('message', (data: Buffer | string) => {
+      void (async () => {
+        const receiveTime = Date.now();
 
-      // Per-socket fixed window rate limiting (max 25 messages/second)
-      const meta = state.socketMetadata.get(socket);
-      if (meta) {
-        if (receiveTime > meta.rateLimit.resetAt) {
-          meta.rateLimit = { count: 1, resetAt: receiveTime + 1000 };
-        } else {
-          meta.rateLimit.count += 1;
-          if (meta.rateLimit.count > MAX_EVENTS_PER_SECOND) {
-            socket.send(
-              JSON.stringify({
-                error: 'RATE_LIMITED',
-                message: 'Rate limit exceeded: maximum 25 events per second.',
-              }),
-            );
-            return;
+        // Per-socket fixed window rate limiting (max 25 messages/second)
+        const meta = state.socketMetadata.get(socket);
+        if (meta) {
+          if (receiveTime > meta.rateLimit.resetAt) {
+            meta.rateLimit = { count: 1, resetAt: receiveTime + 1000 };
+          } else {
+            meta.rateLimit.count += 1;
+            if (meta.rateLimit.count > MAX_EVENTS_PER_SECOND) {
+              socket.send(
+                JSON.stringify({
+                  error: 'RATE_LIMITED',
+                  message: 'Rate limit exceeded: maximum 25 events per second.',
+                }),
+              );
+              return;
+            }
           }
         }
-      }
 
-      let rawMsg: Record<string, unknown>;
-      try {
-        rawMsg = JSON.parse(data.toString());
-      } catch {
-        socket.send(
-          JSON.stringify({
-            error: 'INVALID_JSON',
-            message: 'Malformed JSON message payload',
-          }),
-        );
-        return;
-      }
-
-      // Handle NTP-Lite Clock Sync Probe
-      if (rawMsg['type'] === 'CLOCK_SYNC_PROBE') {
-        const reply = {
-          type: 'CLOCK_SYNC_RESPONSE',
-          t1: rawMsg['t1'],
-          t2: receiveTime,
-          t3: Date.now(),
-        };
-        socket.send(JSON.stringify(reply));
-        return;
-      }
-
-      // Validate Protocol v1 Envelope & Payload
-      const validation = validateEventWithPayload(rawMsg);
-      if (!validation.ok) {
-        socket.send(
-          JSON.stringify({
-            error: 'PROTOCOL_VALIDATION_FAILED',
-            errors: validation.errors,
-          }),
-        );
-        return;
-      }
-
-      const env = validation.value;
-
-      // Role check for playback mutations: Only HOST can mutate playback by default
-      if (env.eventType.startsWith('PLAYBACK_') && clientCtx.role !== 'HOST') {
-        socket.send(
-          JSON.stringify({
-            error: 'FORBIDDEN',
-            message: 'Only the room host can control video playback',
-          }),
-        );
-        return;
-      }
-
-      // Assign monotonic distributed revision via Redis atomic increment
-      const nextRev = await redisState.incr(`room:${roomId}:revision`);
-
-      // Persist playback state to Redis hot path BEFORE publishing
-      if (env.eventType.startsWith('PLAYBACK_') || env.eventType.startsWith('MEDIA_')) {
-        let currentPlayback: PlaybackStateStore | null = null;
+        let rawMsg: Record<string, unknown>;
         try {
-          const currentStr = await redisState.get(`room:${roomId}:state`);
-          if (currentStr) currentPlayback = JSON.parse(currentStr);
+          rawMsg = JSON.parse(data.toString()) as Record<string, unknown>;
         } catch {
-          currentPlayback = null;
+          socket.send(
+            JSON.stringify({
+              error: 'INVALID_JSON',
+              message: 'Malformed JSON message payload',
+            }),
+          );
+          return;
         }
 
-        const payloadObj = env.payload as Record<string, unknown>;
-        const mediaId =
-          (payloadObj['mediaId'] as string) || currentPlayback?.mediaId || 'default-media';
-        const mediaUrl =
-          (payloadObj['mediaUrl'] as string) ||
-          currentPlayback?.mediaUrl ||
-          'https://huddly.app/media/placeholder.mp4';
-
-        let position = (payloadObj['position'] as number) ?? currentPlayback?.position ?? 0.0;
-        let playing = currentPlayback?.playing ?? false;
-        let playbackRate =
-          (payloadObj['playbackRate'] as number) ?? currentPlayback?.playbackRate ?? 1.0;
-
-        if (env.eventType === 'PLAYBACK_PLAY') {
-          playing = true;
-          position = (payloadObj['position'] as number) ?? position;
-          playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
-        } else if (env.eventType === 'PLAYBACK_PAUSE') {
-          playing = false;
-          position = (payloadObj['position'] as number) ?? position;
-        } else if (env.eventType === 'PLAYBACK_SEEK') {
-          position = (payloadObj['position'] as number) ?? position;
-        } else if (env.eventType === 'PLAYBACK_RATE') {
-          playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
-        } else if (env.eventType === 'MEDIA_LOADED') {
-          position = 0.0;
-          playing = false;
-        } else if (env.eventType === 'MEDIA_ENDED') {
-          playing = false;
-          position = (payloadObj['position'] as number) ?? position;
+        // Handle NTP-Lite Clock Sync Probe
+        if (rawMsg['type'] === 'CLOCK_SYNC_PROBE') {
+          const reply = {
+            type: 'CLOCK_SYNC_RESPONSE',
+            t1: rawMsg['t1'],
+            t2: receiveTime,
+            t3: Date.now(),
+          };
+          socket.send(JSON.stringify(reply));
+          return;
         }
 
-        const updatedState: PlaybackStateStore = {
-          mediaId,
-          mediaUrl,
-          position,
-          playing,
-          playbackRate,
+        // Validate Protocol v1 Envelope & Payload
+        const validation = validateEventWithPayload(rawMsg);
+        if (!validation.ok) {
+          socket.send(
+            JSON.stringify({
+              error: 'PROTOCOL_VALIDATION_FAILED',
+              errors: validation.errors,
+            }),
+          );
+          return;
+        }
+
+        const env = validation.value;
+
+        // Role check for playback mutations: Only HOST can mutate playback by default
+        if (env.eventType.startsWith('PLAYBACK_') && clientCtx.role !== 'HOST') {
+          socket.send(
+            JSON.stringify({
+              error: 'FORBIDDEN',
+              message: 'Only the room host can control video playback',
+            }),
+          );
+          return;
+        }
+
+        // Assign monotonic distributed revision via Redis atomic increment
+        const nextRev = await redisState.incr(`room:${roomId}:revision`);
+
+        // Persist playback state to Redis hot path BEFORE publishing
+        if (env.eventType.startsWith('PLAYBACK_') || env.eventType.startsWith('MEDIA_')) {
+          let currentPlayback: PlaybackStateStore | null = null;
+          try {
+            const currentStr = await redisState.get(`room:${roomId}:state`);
+            if (currentStr) currentPlayback = JSON.parse(currentStr) as PlaybackStateStore;
+          } catch {
+            currentPlayback = null;
+          }
+
+          const payloadObj = env.payload as Record<string, unknown>;
+          const mediaId =
+            (payloadObj['mediaId'] as string) || currentPlayback?.mediaId || 'default-media';
+          const mediaUrl =
+            (payloadObj['mediaUrl'] as string) ||
+            currentPlayback?.mediaUrl ||
+            'https://huddly.app/media/placeholder.mp4';
+
+          let position = (payloadObj['position'] as number) ?? currentPlayback?.position ?? 0.0;
+          let playing = currentPlayback?.playing ?? false;
+          let playbackRate =
+            (payloadObj['playbackRate'] as number) ?? currentPlayback?.playbackRate ?? 1.0;
+
+          if (env.eventType === 'PLAYBACK_PLAY') {
+            playing = true;
+            position = (payloadObj['position'] as number) ?? position;
+            playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
+          } else if (env.eventType === 'PLAYBACK_PAUSE') {
+            playing = false;
+            position = (payloadObj['position'] as number) ?? position;
+          } else if (env.eventType === 'PLAYBACK_SEEK') {
+            position = (payloadObj['position'] as number) ?? position;
+          } else if (env.eventType === 'PLAYBACK_RATE') {
+            playbackRate = (payloadObj['playbackRate'] as number) ?? playbackRate;
+          } else if (env.eventType === 'MEDIA_LOADED') {
+            position = 0.0;
+            playing = false;
+          } else if (env.eventType === 'MEDIA_ENDED') {
+            playing = false;
+            position = (payloadObj['position'] as number) ?? position;
+          }
+
+          const updatedState: PlaybackStateStore = {
+            mediaId,
+            mediaUrl,
+            position,
+            playing,
+            playbackRate,
+            revision: nextRev,
+            serverTimestamp: Date.now(),
+          };
+
+          await redisState.set(`room:${roomId}:state`, JSON.stringify(updatedState));
+
+          // Asynchronously update PostgreSQL durable playback record
+          prisma.playbackState
+            .upsert({
+              where: { roomId },
+              update: {
+                position,
+                isPlaying: playing,
+                playbackRate,
+                revision: BigInt(nextRev),
+                controllerUserId: clientCtx.userId,
+                serverTimestamp: new Date(),
+              },
+              create: {
+                roomId,
+                position,
+                isPlaying: playing,
+                playbackRate,
+                revision: BigInt(nextRev),
+                controllerUserId: clientCtx.userId,
+                serverTimestamp: new Date(),
+              },
+            })
+            .catch(() => {});
+        }
+
+        const serverEnvelope = {
+          ...env,
+          eventId: randomUUID(),
+          actorId: clientCtx.userId,
           revision: nextRev,
           serverTimestamp: Date.now(),
         };
 
-        await redisState.set(`room:${roomId}:state`, JSON.stringify(updatedState));
-
-        // Asynchronously update PostgreSQL durable playback record
-        prisma.playbackState
-          .upsert({
-            where: { roomId },
-            update: {
-              position,
-              isPlaying: playing,
-              playbackRate,
-              revision: BigInt(nextRev),
-              controllerUserId: clientCtx.userId,
-              serverTimestamp: new Date(),
-            },
-            create: {
-              roomId,
-              position,
-              isPlaying: playing,
-              playbackRate,
-              revision: BigInt(nextRev),
-              controllerUserId: clientCtx.userId,
-              serverTimestamp: new Date(),
-            },
-          })
-          .catch(() => {});
-      }
-
-      const serverEnvelope = {
-        ...env,
-        eventId: randomUUID(),
-        actorId: clientCtx.userId,
-        revision: nextRev,
-        serverTimestamp: Date.now(),
-      };
-
-      // Publish to Redis Pub/Sub for cross-node fanout
-      await redisPubSub.publish(`room:${roomId}`, JSON.stringify(serverEnvelope));
+        // Publish to Redis Pub/Sub for cross-node fanout
+        await redisPubSub.publish(`room:${roomId}`, JSON.stringify(serverEnvelope));
+      })();
     });
 
     // Cleanup on disconnect
-    socket.on('close', async () => {
-      state.socketMetadata.delete(socket);
-      const roomSet = state.roomSockets.get(roomId);
-      if (roomSet) {
-        roomSet.delete(socket);
-        if (roomSet.size === 0) {
-          state.roomSockets.delete(roomId);
-          await redisSub.unsubscribe(`room:${roomId}`);
+    socket.on('close', () => {
+      void (async () => {
+        state.socketMetadata.delete(socket);
+        const roomSet = state.roomSockets.get(roomId);
+        if (roomSet) {
+          roomSet.delete(socket);
+          if (roomSet.size === 0) {
+            state.roomSockets.delete(roomId);
+            await redisSub.unsubscribe(`room:${roomId}`);
+          }
         }
-      }
 
-      // Emit PRESENCE_UPDATED (OFFLINE) to room
-      try {
-        const leaveRev = await redisState.incr(`room:${roomId}:revision`);
-        const leavePresenceEnvelope: EventEnvelope<PresenceUpdatedPayload> = {
-          protocolVersion: PROTOCOL_VERSION,
-          eventId: randomUUID(),
-          eventType: 'PRESENCE_UPDATED',
-          roomId,
-          actorId: clientCtx.userId,
-          revision: leaveRev,
-          serverTimestamp: Date.now(),
-          payload: {
-            memberId: clientCtx.memberId,
-            status: 'OFFLINE',
-            updatedAt: Date.now(),
-          },
-        };
-        await redisPubSub.publish(`room:${roomId}`, JSON.stringify(leavePresenceEnvelope));
-      } catch {
-        // Ignore disconnect presence error if server closing
-      }
+        // Emit PRESENCE_UPDATED (OFFLINE) to room
+        try {
+          const leaveRev = await redisState.incr(`room:${roomId}:revision`);
+          const leavePresenceEnvelope: EventEnvelope<PresenceUpdatedPayload> = {
+            protocolVersion: PROTOCOL_VERSION,
+            eventId: randomUUID(),
+            eventType: 'PRESENCE_UPDATED',
+            roomId,
+            actorId: clientCtx.userId,
+            revision: leaveRev,
+            serverTimestamp: Date.now(),
+            payload: {
+              memberId: clientCtx.memberId,
+              status: 'OFFLINE',
+              updatedAt: Date.now(),
+            },
+          };
+          await redisPubSub.publish(`room:${roomId}`, JSON.stringify(leavePresenceEnvelope));
+        } catch {
+          // Ignore disconnect presence error if server closing
+        }
+      })();
     });
   });
 

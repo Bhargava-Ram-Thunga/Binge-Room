@@ -286,7 +286,7 @@ export default function App() {
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText('https://huddly.app/join/hud-7k9p');
+    void navigator.clipboard.writeText('https://huddly.app/join/hud-7k9p');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

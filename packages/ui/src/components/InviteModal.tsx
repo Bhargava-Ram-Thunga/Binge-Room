@@ -23,7 +23,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   if (!isOpen) return null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(inviteUrl);
+    void navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

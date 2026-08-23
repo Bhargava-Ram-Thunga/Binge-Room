@@ -7,6 +7,5 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "references": [{ "path": "../protocol" }],
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": ["src"]
 }
