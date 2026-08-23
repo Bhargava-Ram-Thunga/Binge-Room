@@ -16,6 +16,8 @@ import {
   generateOAuthState,
   verifyOAuthState,
 } from '../oauth/index.js';
+import { AUTH_REST_ERROR_CODES } from '../utils/errors.js';
+import { recordAuthAuditEvent } from '../utils/audit.js';
 
 const OAuthUrlQuerySchema = z.object({
   redirectUri: z.string().url().optional(),
@@ -78,7 +80,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Registration Payload',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -96,7 +98,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Email Already Exists',
         status: 409,
         detail: 'An account with this email address already exists.',
-        code: 'ERR_EMAIL_EXISTS',
+        code: AUTH_REST_ERROR_CODES.EMAIL_EXISTS,
       });
     }
 
@@ -120,6 +122,16 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
             refreshTokenHash: tokenHash,
           },
         },
+      },
+    });
+
+    recordAuthAuditEvent(fastify.log, {
+      eventType: 'AUTH_REGISTER_SUCCESS',
+      actorUserId: user.id,
+      details: {
+        email: user.email,
+        deviceType: deviceType || 'WEB',
+        userAgent: resolvedUserAgent,
       },
     });
 
@@ -160,12 +172,13 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Login Payload',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
     const { password, deviceType, userAgent } = parseResult.data;
     const email = normalizeEmail(parseResult.data.email);
+    const resolvedUserAgent = userAgent || request.headers['user-agent'] || null;
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -174,39 +187,66 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     // Timing-attack mitigation: execute dummy verify if user is not found or has no password
     if (!user || !user.passwordHash) {
       await dummyVerify();
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_LOGIN_FAILURE',
+        details: {
+          email,
+          reason: 'User not found or password unset',
+          deviceType: deviceType || 'WEB',
+          userAgent: resolvedUserAgent,
+        },
+      });
       return reply.status(401).send({
         type: 'https://huddly.app/errors/invalid-credentials',
         title: 'Invalid Credentials',
         status: 401,
         detail: 'Invalid email or password.',
-        code: 'ERR_INVALID_CREDENTIALS',
+        code: AUTH_REST_ERROR_CODES.INVALID_CREDENTIALS,
       });
     }
 
     const isPasswordValid = await verifyPassword(user.passwordHash, password);
     if (!isPasswordValid) {
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_LOGIN_FAILURE',
+        actorUserId: user.id,
+        details: {
+          email,
+          reason: 'Invalid password',
+          deviceType: deviceType || 'WEB',
+          userAgent: resolvedUserAgent,
+        },
+      });
       return reply.status(401).send({
         type: 'https://huddly.app/errors/invalid-credentials',
         title: 'Invalid Credentials',
         status: 401,
         detail: 'Invalid email or password.',
-        code: 'ERR_INVALID_CREDENTIALS',
+        code: AUTH_REST_ERROR_CODES.INVALID_CREDENTIALS,
       });
     }
 
     if (user.status !== 'ACTIVE') {
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_LOGIN_FAILURE',
+        actorUserId: user.id,
+        details: {
+          email,
+          reason: 'Account inactive',
+          status: user.status,
+        },
+      });
       return reply.status(403).send({
         type: 'https://huddly.app/errors/account-inactive',
         title: 'Account Inactive',
         status: 403,
         detail: 'This account has been suspended or deactivated.',
-        code: 'ERR_ACCOUNT_INACTIVE',
+        code: AUTH_REST_ERROR_CODES.ACCOUNT_INACTIVE,
       });
     }
 
     // Generate new refresh token and register device session
     const { rawToken, tokenHash } = generateRefreshToken();
-    const resolvedUserAgent = userAgent || request.headers['user-agent'] || null;
 
     await prisma.userDevice.create({
       data: {
@@ -215,6 +255,16 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         userAgent: resolvedUserAgent,
         refreshTokenHash: tokenHash,
         lastSeenAt: new Date(),
+      },
+    });
+
+    recordAuthAuditEvent(fastify.log, {
+      eventType: 'AUTH_LOGIN_SUCCESS',
+      actorUserId: user.id,
+      details: {
+        email: user.email,
+        deviceType: deviceType || 'WEB',
+        userAgent: resolvedUserAgent,
       },
     });
 
@@ -255,7 +305,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Refresh Payload',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -268,22 +318,31 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (!device || !device.user) {
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_REFRESH_FAILURE',
+        details: { reason: 'Invalid or unrecognized refresh token' },
+      });
       return reply.status(401).send({
         type: 'https://huddly.app/errors/invalid-token',
         title: 'Invalid Refresh Token',
         status: 401,
         detail: 'The provided refresh token is invalid, expired, or has already been used.',
-        code: 'ERR_INVALID_TOKEN',
+        code: AUTH_REST_ERROR_CODES.INVALID_TOKEN,
       });
     }
 
     if (device.user.status !== 'ACTIVE') {
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_REFRESH_FAILURE',
+        actorUserId: device.user.id,
+        details: { reason: 'Account inactive' },
+      });
       return reply.status(403).send({
         type: 'https://huddly.app/errors/account-inactive',
         title: 'Account Inactive',
         status: 403,
         detail: 'This account has been suspended or deactivated.',
-        code: 'ERR_ACCOUNT_INACTIVE',
+        code: AUTH_REST_ERROR_CODES.ACCOUNT_INACTIVE,
       });
     }
 
@@ -295,12 +354,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         data: { refreshTokenHash: null },
       });
 
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_REFRESH_FAILURE',
+        actorUserId: device.user.id,
+        details: { reason: 'Refresh token expired (> 7 days)' },
+      });
+
       return reply.status(401).send({
         type: 'https://huddly.app/errors/token-expired',
         title: 'Refresh Token Expired',
         status: 401,
         detail: 'The refresh token has expired (maximum 7 days). Please log in again.',
-        code: 'ERR_TOKEN_EXPIRED',
+        code: AUTH_REST_ERROR_CODES.TOKEN_EXPIRED,
       });
     }
 
@@ -313,6 +378,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         refreshTokenHash: newTokenHash,
         lastSeenAt: new Date(),
       },
+    });
+
+    recordAuthAuditEvent(fastify.log, {
+      eventType: 'AUTH_REFRESH_SUCCESS',
+      actorUserId: device.user.id,
     });
 
     const newAccessToken = fastify.jwt.sign(
@@ -360,6 +430,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
+    recordAuthAuditEvent(fastify.log, {
+      eventType: 'AUTH_LOGOUT',
+      actorUserId: userId,
+    });
+
     return reply.status(200).send({
       message: 'Logged out successfully',
     });
@@ -377,7 +452,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid Guest Request',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -389,6 +464,12 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         isGuest: true,
         status: 'ACTIVE',
       },
+    });
+
+    recordAuthAuditEvent(fastify.log, {
+      eventType: 'AUTH_GUEST_CREATED',
+      actorUserId: user.id,
+      details: { displayName: user.displayName },
     });
 
     const token = fastify.jwt.sign(
@@ -427,7 +508,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'User Not Found',
         status: 404,
         detail: 'The authenticated user was not found',
-        code: 'ERR_USER_NOT_FOUND',
+        code: AUTH_REST_ERROR_CODES.USER_NOT_FOUND,
       });
     }
 
@@ -456,7 +537,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Unsupported OAuth Provider',
         status: 400,
         detail: `OAuth provider '${provider}' is not supported. Supported providers: ${defaultOAuthRegistry.list().join(', ')}`,
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -499,7 +580,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Invalid OAuth Callback Payload',
         status: 400,
         detail: parseResult.error.issues[0]?.message || 'Invalid payload',
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
@@ -513,19 +594,26 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         title: 'Unsupported OAuth Provider',
         status: 400,
         detail: `OAuth provider '${provider}' is not supported.`,
-        code: 'ERR_INVALID_PAYLOAD',
+        code: AUTH_REST_ERROR_CODES.INVALID_PAYLOAD,
       });
     }
 
     // Validate CSRF state
     const stateValidation = verifyOAuthState(state, provider);
     if (!stateValidation.valid) {
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_LOGIN_FAILURE',
+        details: {
+          provider,
+          reason: stateValidation.error || 'CSRF state verification failed',
+        },
+      });
       return reply.status(401).send({
         type: 'https://huddly.app/errors/invalid-token',
         title: 'Invalid or Expired OAuth State',
         status: 401,
         detail: stateValidation.error || 'CSRF state verification failed.',
-        code: 'ERR_INVALID_TOKEN',
+        code: AUTH_REST_ERROR_CODES.INVALID_TOKEN,
       });
     }
 
@@ -539,12 +627,19 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Token exchange failed';
+      recordAuthAuditEvent(fastify.log, {
+        eventType: 'AUTH_LOGIN_FAILURE',
+        details: {
+          provider,
+          reason: message,
+        },
+      });
       return reply.status(401).send({
         type: 'https://huddly.app/errors/invalid-credentials',
         title: 'OAuth Authentication Failed',
         status: 401,
         detail: message,
-        code: 'ERR_INVALID_CREDENTIALS',
+        code: AUTH_REST_ERROR_CODES.INVALID_CREDENTIALS,
       });
     }
 
@@ -559,12 +654,21 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (user) {
       if (user.status !== 'ACTIVE') {
+        recordAuthAuditEvent(fastify.log, {
+          eventType: 'AUTH_LOGIN_FAILURE',
+          actorUserId: user.id,
+          details: {
+            provider,
+            email,
+            reason: 'Account inactive',
+          },
+        });
         return reply.status(403).send({
           type: 'https://huddly.app/errors/account-inactive',
           title: 'Account Inactive',
           status: 403,
           detail: 'This account has been suspended or deactivated.',
-          code: 'ERR_ACCOUNT_INACTIVE',
+          code: AUTH_REST_ERROR_CODES.ACCOUNT_INACTIVE,
         });
       }
       isLinked = true;
@@ -600,6 +704,18 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         userAgent: resolvedUserAgent,
         refreshTokenHash: tokenHash,
         lastSeenAt: new Date(),
+      },
+    });
+
+    recordAuthAuditEvent(fastify.log, {
+      eventType: isLinked ? 'AUTH_LOGIN_SUCCESS' : 'AUTH_REGISTER_SUCCESS',
+      actorUserId: user.id,
+      details: {
+        provider,
+        email: user.email,
+        linked: isLinked,
+        deviceType: deviceType || 'WEB',
+        userAgent: resolvedUserAgent,
       },
     });
 

@@ -75,6 +75,9 @@ vi.mock('@huddly/database', () => {
 
   return {
     prisma: {
+      auditEvent: {
+        create: vi.fn().mockResolvedValue({}),
+      },
       user: {
         create: vi.fn().mockImplementation(
           async ({
