@@ -11,10 +11,9 @@ Huddly synchronizes the **playback experience**, not the pixels.
 
   <br />
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-F2BB31.svg?style=flat-square)](LICENSE)
 [![CI](https://github.com/Bhargava-Ram-Thunga/Huddly/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Bhargava-Ram-Thunga/Huddly/actions/workflows/ci.yml)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict-3178C6.svg?style=flat-square)](tsconfig.base.json)
-[![Milestone: M0](https://img.shields.io/badge/Milestone-M0_Architecture-BF7118.svg?style=flat-square)](ROADMAP.md)
+[![Milestone: M2](https://img.shields.io/badge/Milestone-M2_Rooms-BF7118.svg?style=flat-square)](ROADMAP.md)
 [![Turborepo](https://img.shields.io/badge/Monorepo-Turborepo-000000.svg?style=flat-square)](turbo.json)
 
   <br />
@@ -162,4 +161,4 @@ pnpm lint
 
 ## License
 
-Distributed under the **Apache 2.0 License**. See [`LICENSE`](LICENSE) for more details.
+This is a personal project. All rights reserved; not licensed for reuse or redistribution.
