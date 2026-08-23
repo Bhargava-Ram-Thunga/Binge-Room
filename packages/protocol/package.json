@@ -16,5 +16,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "zod": "^4.4.3"
   }
 }

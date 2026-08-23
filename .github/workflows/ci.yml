@@ -93,12 +93,34 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @huddly/e2e exec playwright install --with-deps chromium firefox
+      - run: pnpm --filter @huddly/e2e test
+      - name: Upload E2E report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/e2e/playwright-report/**
+          retention-days: 7
+          if-no-files-found: ignore
+
   # Single required check, so branch protection does not need updating
   # every time a job is added to this workflow.
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
-    needs: [docs, lint, typecheck, test, build]
+    needs: [docs, lint, typecheck, test, build, e2e]
     if: always()
     steps:
       - name: Verify all jobs succeeded
