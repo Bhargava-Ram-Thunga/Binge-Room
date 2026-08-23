@@ -10,3 +10,4 @@ allowBuilds:
   '@prisma/client': true
   argon2: true
   '@prisma/engines': true
+  simple-git-hooks: true
