@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Huddly E2E Fixture - Video Sync Test</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #08080c;
+        color: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      .video-container {
+        background: #121218;
+        border: 1px solid #272730;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 640px;
+        width: 100%;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      video {
+        width: 100%;
+        border-radius: 8px;
+        background: #000;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        align-items: center;
+      }
+      button {
+        background: #f2bb31;
+        color: #000;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .time-display {
+        font-family: monospace;
+        font-size: 1rem;
+        color: #94a3b8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="video-container">
+      <h2>Huddly HTML5 Video Fixture</h2>
+      <video
+        id="test-video"
+        data-testid="video-element"
+        src="data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAAhmcmVlAAAAbW1kYXQAAAG1AAMAH4AAAAMAAAABAAAA"
+        preload="metadata"
+      ></video>
+      <div class="controls">
+        <button id="play-btn" data-testid="play-btn" onclick="togglePlay()">Play/Pause</button>
+        <button id="seek-btn" data-testid="seek-btn" onclick="seek(10)">Seek +10s</button>
+        <span class="time-display"
+          >Time: <span id="current-time" data-testid="current-time">0.00</span>s</span
+        >
+      </div>
+    </div>
+
+    <script>
+      const video = document.getElementById('test-video');
+      const timeDisplay = document.getElementById('current-time');
+
+      function togglePlay() {
+        if (video.paused) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+
+      function seek(seconds) {
+        video.currentTime = Math.max(0, video.currentTime + seconds);
+        timeDisplay.textContent = video.currentTime.toFixed(2);
+      }
+
+      video.addEventListener('timeupdate', () => {
+        timeDisplay.textContent = video.currentTime.toFixed(2);
+      });
+    </script>
+  </body>
+</html>
