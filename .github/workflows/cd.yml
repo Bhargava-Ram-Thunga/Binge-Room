@@ -36,6 +36,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @huddly/e2e exec playwright install --with-deps chromium firefox
       - name: Verify before packaging
         run: |
           pnpm lint
