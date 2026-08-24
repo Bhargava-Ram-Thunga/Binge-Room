@@ -8,7 +8,7 @@ import crypto from 'crypto';
  * - Time Cost: 3 iterations
  * - Parallelism: 4 threads
  */
-const ARGON2_OPTIONS: argon2.Options = {
+const ARGON2_OPTIONS: argon2.HashOptions & { raw?: false } = {
   type: argon2.argon2id,
   memoryCost: 65536,
   timeCost: 3,
